@@ -4,6 +4,10 @@ This File implements a PI controller for the motors.
 #include <Arduino.h>
 #include <Wire.h>
 
+// Wire stuff
+#define MY_ADDR 8  // Arduino I2C address
+volatile uint8_t receivedValue = 0;  // Stores the received integer
+
 // Pin Definitions
 const uint8_t D2 = 4;
 const uint8_t M1DIR = 7;
@@ -27,24 +31,34 @@ const unsigned long ts = 100; // Sample time in ms
 
 // Initial robot position and orientation
 float t=0.0, x = 0.0, y = 0.0, phi = 0.0; 
-float new_pos[2] = {0};
-float old_pos[2] = {0};
+float new_pos[] = {0,0};
+float old_pos[] = {0,0};
 
-// Control Parameters, Position and speed control variables
-float desired_pos[2] = {3.14, 3.14};
-float actual_pos[2] = {0, 0};
-float desired_speed[2] = {0, 0};
-float actual_speed[2] = {0, 0};
-float pos_error[2] = {0, 0};
-float integral_error[2] = {0, 0};
-float error[2] = {0, 0};
-float Voltage[2] = {0, 0};
-float Kp_pos = 71.2;
-float Ki_pos = 978.5;
-float Kp = 2.5;
+//Drive variables
+float battery_V = 7.8;
+float Voltage[] = {0, 0};
+
+// Control variables
+float pos_error[] = {0, 0};
+float desired_pos[] = {0, 0};
+float actual_pos[] = {0, 0};
+float integral_error[] = {0, 0};
+float desired_speed[] = {0, 0};
+float actual_speed[] = {0, 0};
+float error[] = {0, 0};
+
+//Control constraints
+float K[] = {1.75,1.75};
+float sigma[] = {15,15};
+float Kp[] = {2.5,2.5};
+float P[] = {30.26,30.26};
+float I[] = {150.72,150.72};
 
 void setup() {
   Serial.begin(115200);
+
+  Wire.begin(MY_ADDR);  // Initialize as I2C slave
+  Wire.onReceive(receiveData);  // Set function to run when data is received
 
   pinMode(M1ENCA, INPUT);
   pinMode(M1ENCB, INPUT);
@@ -89,17 +103,15 @@ void loop() {
   for (int i = 0; i < 2; i++) {
       pos_error[i] = desired_pos[i] - actual_pos[i];
       integral_error[i] += pos_error[i] * ((float) ts / 1000.0);
-      desired_speed[i] = Kp_pos * pos_error[i] + Ki_pos * integral_error[i];
+      desired_speed[i] = P[i] * pos_error[i] + I[i] * integral_error[i];
       error[i] = desired_speed[i] - actual_speed[i];
-      Voltage[i] = Kp * error[i];
+      Voltage[i] = Kp[i] * error[i];
   }
 
   // Apply control outputs
   for (int i = 0; i < 2; i++) {
     const uint8_t dir_array[2] = {M1DIR, M2DIR};
     const uint8_t pwm_array[2] = {M1PWM, M2PWM};
-      // bool direction = Voltage[i] > 0;
-      // digitalWrite(i == 0 ? M1DIR : M2DIR, direction);
     if(Voltage[i] > 0){
       digitalWrite(dir_array[i], HIGH);
     }
@@ -113,18 +125,37 @@ void loop() {
 
 // ISR for Encoder 1
 void ISR_encoder1Change() {
-    if (digitalRead(M1ENCA) == digitalRead(M1ENCB)) {
-        countL += 2;
-    } else {
-        countL -= 2;
-    }
+  if (digitalRead(M1ENCA) == digitalRead(M1ENCB)) {
+    countL += 2;
+  } else {
+    countL -= 2;
+  }
 }
 
 // ISR for Encoder 2
 void ISR_encoder2Change() {
-    if (digitalRead(M2ENCA) == digitalRead(M2ENCB)) {
-        countR += 2;
-    } else {
-        countR -= 2;
+  if (digitalRead(M2ENCA) == digitalRead(M2ENCB)) {
+    countR += 2;
+  } else {
+    countR -= 2;
+  }
+}
+
+void receiveData(int numBytes) {
+  if (Wire.available()) {
+    String receivedMessage = "";
+    
+    // Read the entire message
+    while (Wire.available()) {
+      char c = Wire.read();
+      receivedMessage += c;
     }
+
+    Serial.print("Received from Pi: ");
+    Serial.println(receivedMessage);
+
+    // Parse the received string (expected format: "0 0", "0 1", "1 0", "1 1")
+    desired_pos[0] = receivedMessage[0] - '0'; // Convert char to int
+    desired_pos[1] = receivedMessage[2] - '0'; // Convert char to int
+  }
 }
