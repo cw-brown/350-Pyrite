@@ -1,6 +1,7 @@
+# EENG 350 - Mini Project Pi Code.
 # Group 7 - Pyrite
-# EENG 350
-# Created by Bruce Bearden and Drew Barner
+# Pi code created Bruce Bearden and Drew Barner
+# Arduino code created by Parker Anderson and Caleb Brown
 
 '''
 This code detects the region where an aruco marker is detected, and
@@ -15,6 +16,31 @@ follows:
       SE     -   [1,0]
       SW     -   [1,1]
 
+To increase/decrease the lag adjustment of the frame rate is possible
+The program runs optimally displaying every thrid frame, since the processing
+power of the pi is not anything special.
+
+
+The I2C communication protocol is used to send a string to the arduino to display the
+desired location of the left wheel and right wheel, and to send a byte to the
+arduino to commincate the desired location.
+
+To run this code, ensure that the aruco marker used for testing is defined in the
+imported aruco dictionary, and verify the following connections from the lcd pi shield
+and the arduino:
+
+    *NOTE: The LCD pi shield needs to properly attached where the left side of the shield
+           is lined up with the SD card side of the PI. View the EENG 350 Assingment 1
+           computer vision and communication tutorial for more details.
+
+    Connections:
+    pi        -        arduino
+    --------------------------
+    GND       -        GND
+    SCL       -        A5
+    SDA       -        A4
+
+    
 '''
 
 # library imports
@@ -57,20 +83,20 @@ def updateLCD():
     lcd.clear()
     lcd.color = [0, 0, 100]  # Set initial color (Blue)
     print("LCD init done")
-    
+
+    #***********************************************
+    # Update the LCD and send data only if necessary
+    #***********************************************
     while True:
         if not lcdQueue.empty():
             quad = lcdQueue.get()
             lcd.clear()
-##          lcd.message = quad
             
             if wheelLocation is not None:
                 location = wheelLocation # temp assignment in case of quick change in marker position
-##              lcd.message = wheelLocation
                 lcd.message = str(quad)
 
                 # Send the wheelLocation data to the Arduino using smbus2
-##                i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, [ord(c) for c in wheelLocation])
                 i2cARD.write_byte_data(ARD_ADDR, 0x00, location)
 
 # Start the LCD update thread
@@ -85,17 +111,11 @@ if not ret:
     print("Failed to grab frame.")
     exit()
 
+# The default window size is x = 640 and y = 480
 height, width, _ = frame.shape
 vertThresh = width / 2
 horiThresh = height / 2
 
-# The default window size is x = 640 and y = 480
-# Region definitions for a 640 x 480 window.
-ne = [[320, 0], [640, 0], [640, 240], [320, 240]]
-se = [[320, 240], [640, 240], [640, 480], [320, 480]]
-sw = [[240, 0], [240, 300], [480, 300], [480, 0]]
-nw = [[0, 0], [320, 0], [320, 240], [0, 240]]
-#quadrants ["NW", "NE", "SW", "SE", "None"]
 quadrants = ["0 1", "0 0", "1 1", "1 0", "None"] # these will print to the lcd
 
 wheelLocations = [2,1,3,4] # these will be sent to the arduino
@@ -103,7 +123,7 @@ wheelLocation = None # stores where the wheels should be
 lastQuadrant = None # stores the last detected quadrant to detect change in marker location
 quadrant = None # stores the current quadrant to detect change in marker location
 frameCount = 0 # stores frame count to slow down camera for less lag
-frames = 3 # set the fps of the program
+frames = 3 # set the fps of the program.
 
 # ArUco marker setup (tells the program the aruco markers we can expect)
 aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_50)
@@ -121,8 +141,6 @@ while True:
         corners, ids, rejected = aruco.detectMarkers(grey, aruco_dict)  # Find the markers and associated corners
 
         # Draw border lines and detected markers
-        #overlay = cv2.cvtColor(grey, cv2.COLOR_GRAY2RGB)  # Convert back to RGB for imshow
-        #overlay = aruco.drawDetectedMarkers(overlay, corners, borderColor=4)
         overlay = aruco.drawDetectedMarkers(grey, corners, borderColor=4)
 
         cv2.line(overlay, (width // 2, 0), (width // 2, height), (0, 255, 0), 2)  # Horizontal line
@@ -158,6 +176,7 @@ while True:
                 else:
                     quadrant = quadrants[4]  # None, if marker is somewhere in between
                     wheelLocation = None
+
         else: # No marker detected
             quadrant = quadrants[4]  
             wheelLocation = None
@@ -168,7 +187,6 @@ while True:
             lastQuadrant = quadrant # update the last detected quadrant
 
         #Display the real-time feed with marker information
-        overlay = cv2.flip(overlay,1) # flip the camera if desired
         cv2.imshow("Real-Time", overlay)
 
     frameCount += 1
