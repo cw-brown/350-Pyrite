@@ -1,0 +1,92 @@
+# Bruce Bearden
+# Hangman
+
+# Documentation - EENG 350
+'''
+This python code was created to play a game of hangman between 2 users. One user would enter a secret word, and the other user would try to guess the secret word with a pre allotted amount of guesses. To run the code, simply copy this txt into a .py file and run. The first user will then enter a secret word and then the game will automatically start for the next user.
+'''
+'''
+Pseudocode:
+Step 1: Enter the input prompts for the user
+Step 2: Split the secret word up into a list.
+        Make a list of all underscores that is the
+        same length of the secret word, this list will
+        serve as the interface between the user and 
+        guessing the secret word. When the program asks 
+        the user for the character, it will search through 
+        the secret word list and if it finds a character it
+        will change the underscore list to the letter. 
+Step 3: if the user guesses the word the program will 
+        output the winning prompt, the amount of guesses remaining
+        and the secret word separated by spaces.
+'''
+
+
+# Step 1:
+
+# print a user interface, the user will enter a secret word and input how many possible guesses.
+print("Welcome to Simple Hang Man")
+print("Enter a secret word:")
+secret_word = input("WORD> ")
+secret_word = secret_word.lower()
+print("Enter the number of guesses allowed:")
+num_guesses = int(input("NUM> "))
+print()
+
+
+# Step 2:
+
+# turn the secret word into a secret word list
+secret_word_list = list(secret_word)
+print("Secret word saved, best of luck!")
+
+# create a guess list, and check with the secret word list to see if any guessed letters are correct.
+guess_list = []
+previous_guesses = []
+for i in range(0,len(secret_word_list)):
+    guess_list.append("_")
+
+# run until the user runs out of guesses
+guessTotal = 0
+while num_guesses > 0:
+    print("Please enter a character:")
+    character = input("CHAR> ")
+    guessTotal += 1
+    previous_guesses.append(character)
+    for j in range(0, len(secret_word_list)):
+        if secret_word_list[j] == character:
+            guess_list[j] = character
+    secret_word_end = ' '.join(secret_word_list)
+    guess_list_end = ' '.join(guess_list)
+    if num_guesses == 0:
+        break
+    if character in secret_word_list:
+        print("OUTPUT Success! You guessed a character in the word!")
+        num_guesses -= 1
+        print(f"{num_guesses} guesses remaining")
+        print(f"Character's guessed: {previous_guesses}")
+        print(f"OUTPUT Secret word: {guess_list_end}")
+        print()
+    else:
+        print("OUTPUT Boo! You guessed incorrectly")
+        num_guesses -= 1
+        print(f"{num_guesses} guesses remaining")
+        print(f"Character's guessed: {previous_guesses}")
+        print(f"OUTPUT Secret word: {guess_list_end}")
+        print()
+
+    
+
+    secret_word_end = ' '.join(secret_word_list)
+
+    # check if the user guessed the whole word
+    if "_" not in guess_list:
+        print("OUTPUT Congratulations! You guessed the secret word!")
+        print(f"You guessed the word in {guessTotal} guesses! Nice Job!")
+        print(f"OUTPUT Secret word: {secret_word_end}")
+        break
+    # if the user did not guess, print the secret word anyways
+    elif num_guesses == 0:
+        print("OUTPUT You ran out of guesses! Better luck next time!")
+        print(f"OUTPUT Secret word: {secret_word_end}")
+        break
