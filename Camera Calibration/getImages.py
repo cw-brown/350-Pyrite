@@ -1,9 +1,9 @@
 import cv2
 
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(0)
 
 num = 0
-
+print("Take pictures")
 while cap.isOpened():
 
     succes, img = cap.read()
@@ -23,3 +23,4 @@ while cap.isOpened():
 cap.release()
 
 cv2.destroyAllWindows()
+print("done taking pictures")
