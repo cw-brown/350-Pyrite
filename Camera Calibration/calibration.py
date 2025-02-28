@@ -51,7 +51,6 @@ for image in images:
     
     cv.imshow('img', img)
 cv.destroyAllWindows()
-print("Images")
 
 
 
@@ -63,6 +62,13 @@ ret, cameraMatrix, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints,
 pickle.dump((cameraMatrix, dist), open( "calibration.pkl", "wb" ))
 pickle.dump(cameraMatrix, open( "cameraMatrix.pkl", "wb" ))
 pickle.dump(dist, open( "dist.pkl", "wb" ))
+
+print("Camera Clibration done:\n",ret)
+print("\nCamera matrix:\n", cameraMatrix)
+print("\nDistortion Parameters:\n", dist)
+print("\nRotation ectors:\n", rvecs)
+print("\nTranslation Vectors: \n", tvecs)
+
 
 
 ############## UNDISTORTION #####################################################
