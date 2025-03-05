@@ -55,9 +55,9 @@ const float b = 0.375; // Wheelbase in meters
 float t=0.0, x = 0.0, y = 0.0;
 
 // angle stuff
+float desiredPhi = 0; // in rad // new
 float phi = 0; // new
 float desiredPhiVel = 0; // new
-float desiredPhi = 0; // in rad // new
 float errorPhi = 0; // new
 float derivativePhi = 0; // new
 float errorPhiInitial = 0; // new
@@ -70,9 +70,9 @@ float errorPhiVel = 0; // new
 float KpPhiVel = .2; // new
 
 // distance stuff
+float desiredRho = 3; // in m // new
 float rho = 0; // new
 float desiredRhoVel = 0; // new
-float desiredRho = 3; // in m // new
 float errorRho = 0; // new
 float derivativeRho = 0; // new
 float errorRhoInitial = 0; // new
