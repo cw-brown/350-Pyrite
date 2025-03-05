@@ -16,11 +16,11 @@ float old_pos_count[] = {0,0}, old_pos_rad[] = {0,0}; // old positions to compar
 const int counts_per_rev = 3200; // Encoder counts per wheel revolution
 
 // Timing Var
-long unsigned int ts = 25;  // Sample time in milliseconds
+long unsigned int ts = 10;  // Sample time in milliseconds
 
 // Drive Vars
 float pwm[] = {0, 0}; // PWM for motors
-float battery_V = 7.8; // Battery voltage as set on robot's motor shield
+float battery_V = 7.5; // Battery voltage as set on robot's motor shield
 
 // inner control parameters
 float Kp_inner_velocity = 0.087;
@@ -29,18 +29,20 @@ float desired_inst_velocity = 0;
 float desired_rot_angle = 0;
 float angle_error;
 
+float fudge = 1.106;
+
 // Outer control loop
-float Kp_outer = 50.13;
-float Ki_outer = 0.45;
-float Kd_outer = 25;
+float Kp_outer = 22;
+float Ki_outer = 0.85;
+float Kd_outer = 26;
 float velocity_error, rot_error, rot_error_prev;
-float desired_angle = 2*PI;
+float desired_angle = 2*PI - fudge;
 float rot_integral;
 float rot_deriv;
 
 // Localization stuff
-const float r = 0.0746125; // Wheel radius in meters
-const float b = 0.375; // Wheelbase in meters
+float r = 0.0746125; // Wheel radius in meters
+float b = 0.375; // Wheelbase in meters
 float t=0.0, x = 0.0, y = 0.0, phi = 0.0;
 
 float rad_pos[] = {0, 0};
@@ -80,18 +82,18 @@ void loop() {
 
   if(millis() % ts == 0){
     // Handle left wheel roll over to reset rotational position
-    if (actual_pos[0] >= counts_per_rev){
-      actual_pos[0] = actual_pos[0] - counts_per_rev;
-    } else if (actual_pos[0] <= -counts_per_rev){
-      actual_pos[0] = actual_pos[0] + counts_per_rev;
-    }
+    // if (actual_pos[0] >= counts_per_rev){
+    //   actual_pos[0] = actual_pos[0] - counts_per_rev;
+    // } else if (actual_pos[0] <= -counts_per_rev){
+    //   actual_pos[0] = actual_pos[0] + counts_per_rev;
+    // }
     
-    // Handle right wheel roll over to reset rotational position
-    if (actual_pos[1] >= counts_per_rev){
-      actual_pos[1] = actual_pos[1] - counts_per_rev;
-    } else if (actual_pos[0] <= -counts_per_rev){
-      actual_pos[1] = actual_pos[1] + counts_per_rev;
-    }
+    // // Handle right wheel roll over to reset rotational position
+    // if (actual_pos[1] >= counts_per_rev){
+    //   actual_pos[1] = actual_pos[1] - counts_per_rev;
+    // } else if (actual_pos[0] <= -counts_per_rev){
+    //   actual_pos[1] = actual_pos[1] + counts_per_rev;
+    // }
 
     // Calculate position in radians for left and right motors (used for finding pos_error)
     rad_pos[0] = 2 * PI * (float)actual_pos[0] / counts_per_rev;
@@ -99,11 +101,11 @@ void loop() {
 
     
     // Speed calculations
-    actual_speed[0] = (rad_pos[0] - old_pos_rad[0]) / ((float)ts / 1000); // Calculates the current speed of left motor
-    actual_speed[1] = (rad_pos[1] - old_pos_rad[1]) / ((float)ts / 1000); //Calculates the current speed of right motor
+    actual_speed[0] = (rad_pos[0] - old_pos_rad[0]) / ((float)ts / 1000.0); // Calculates the current speed of left motor
+    actual_speed[1] = (rad_pos[1] - old_pos_rad[1]) / ((float)ts / 1000.0); // Calculates the current speed of right motor
 
     // Calculate instantaneous forward velocity
-    float instvelocity = r*(actual_speed[0]+actual_speed[1])/2; // cm/s
+    float instvelocity = r*(actual_speed[0]+actual_speed[1])/2; 
 
     // Calculate angle
     float rot_velocity = r*(actual_speed[0]-actual_speed[1])/b;
