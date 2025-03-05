@@ -50,8 +50,8 @@ float P[] = {.065*4,.0635*4};
 float I[] = {0.001,0.001};
 
 // Localization stuff
-const float r = 0.24; // Wheel radius in feet
-const float b = 1.23; // Wheelbase in feet
+const float r = 0.244791667; // Wheel radius in feet
+const float b = 1.28475; // Wheelbase in feet
 float t=0.0, x = 0.0, y = 0.0;
 
 // angle stuff
@@ -62,28 +62,28 @@ float errorPhi = 0; // new
 float derivativePhi = 0; // new
 float errorPhiInitial = 0; // new
 float integralPhi = 0; // new
-float KpPhi = 20; // new
+float KpPhi = 15; // new
 float KdPhi = 0.2; // new
-float KiPhi = 0.45; // new
+float KiPhi = 0.25; // new
 float phiVel = 0; // new
 float errorPhiVel = 0; // new
-float KpPhiVel = .2; // new
+float KpPhiVel = 2; // new
 
 // distance stuff
-float desiredRho = 0; // in feet // new
-float desiredRhoInit = desiredRho; // in feet // new
+float desiredRho = 2; // in feet // new
+float desiredRhoInit = 0; // in feet // new
 float rho = 0; // new
 float desiredRhoVel = 0; // new
 float errorRho = 0; // new
 float derivativeRho = 0; // new
 float errorRhoInitial = 0; // new
 float integralRho = 0; // new
-float KpRho = 23.3514; // new
+float KpRho = 20.3514; // new
 float KdRho = .2038; // new
 float KiRho = .383; // new
 float rhoVel = 0; // new
 float errorRhoVel = 0; // new
-float KpRhoVel = .02; // new
+float KpRhoVel = 5; // new
 
 enum Mode { ROTATE, MOVE_FWD, STOP };  // Define the states
 Mode mode = ROTATE;  // Initialize to a mode
@@ -120,6 +120,8 @@ void setup() {
   initEncRad[1] = 2 * PI * (float)old_pos_count[1] / counts_per_rev;
 
   initialTime = millis();
+
+  desiredRhoInit = desiredRho;
 }
 
 void loop() {
@@ -146,15 +148,14 @@ void loop() {
         desiredRhoVel = 0;
         desiredPhiVel = -10; // arbitrary
       }
-      desiredRhoInit = desiredRho;
       desiredRho = 0;
-      if (phi <= desiredPhi + PI/180 && phi >= desiredPhi - PI/180) {
+      if (phi <= desiredPhi + PI/360 && phi >= desiredPhi - PI/360) {
         mode = MOVE_FWD;
       }
       break;
     case MOVE_FWD:  // Move forward to desiredRho
       desiredRho = desiredRhoInit; // arbitrary
-      desiredPhi = 0;
+      //desiredPhi = 0;
       if (abs(rho) == desiredRho) {
         mode = STOP;
       }
@@ -190,6 +191,8 @@ void loop() {
     rhoVel = (r/2)*(vel[0]+vel[1]);
     errorRhoVel = desiredRhoVel - rhoVel;
 
+    Serial.print(mode);
+    Serial.print("\t");
     Serial.print(rho);
     Serial.print("\t");
     Serial.print(desiredRho);
@@ -207,7 +210,7 @@ void loop() {
     voltage[0] = (Vbar+deltaV)/2;
     voltage[1] = (Vbar-deltaV)/2;
     // if (mode == ROTATE) {
-    //   voltage[1] = abs(voltage[1])*-1;
+    //   voltage[0] = abs(voltage[1])*-1;
     // }
     for (int i = 0; i < 2; i++) {
       if(voltage[i] > 0){
