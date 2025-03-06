@@ -63,14 +63,14 @@ float derivativePhi = 0; // new
 float errorPhiInitial = 0; // new
 float integralPhi = 0; // new
 float KpPhi = 15; // new
-float KdPhi = 0.2; // new
-float KiPhi = 0.25; // new
+float KdPhi = 5; // new
+float KiPhi = .25; // new
 float phiVel = 0; // new
 float errorPhiVel = 0; // new
 float KpPhiVel = 2; // new
 
 // distance stuff
-float desiredRho = 2; // in feet // new
+float desiredRho = 6; // in feet // new
 float desiredRhoInit = 0; // in feet // new
 float rho = 0; // new
 float desiredRhoVel = 0; // new
@@ -79,11 +79,11 @@ float derivativeRho = 0; // new
 float errorRhoInitial = 0; // new
 float integralRho = 0; // new
 float KpRho = 20.3514; // new
-float KdRho = .2038; // new
+float KdRho = 2.2038; // new
 float KiRho = .383; // new
 float rhoVel = 0; // new
 float errorRhoVel = 0; // new
-float KpRhoVel = 5; // new
+float KpRhoVel = .8; // new
 
 enum Mode { ROTATE, MOVE_FWD, STOP };  // Define the states
 Mode mode = ROTATE;  // Initialize to a mode
@@ -149,7 +149,7 @@ void loop() {
         desiredPhiVel = -10; // arbitrary
       }
       desiredRho = 0;
-      if (phi <= desiredPhi + PI/360 && phi >= desiredPhi - PI/360) {
+      if (phi <= desiredPhi + PI/180 && phi >= desiredPhi - PI/180) {
         mode = MOVE_FWD;
       }
       break;
