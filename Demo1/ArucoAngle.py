@@ -10,13 +10,11 @@ with open("dist.pkl", "rb") as f:
     dist = pickle.load(f)
 
 # Aruco marker dictionary and detector parameters
-dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_50)
+dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50)
 parameters = cv.aruco.DetectorParameters()
 
 cap = cv.VideoCapture(0)
 
-last_print_time = time()
-print_interval = 1  # Change this to set how often the angle is printed (in seconds)
 
 while True:
     ret, frame = cap.read()
@@ -49,9 +47,7 @@ while True:
             cv.drawFrameAxes(frame, cameraMatrix, dist, rvec, tvec, 0.03)
             
             # Print angle every specified interval
-            if time() - last_print_time >= print_interval:
-                print(f"Marker ID {ids[i][0]}: Angle = {angle:.2f} degrees")
-                last_print_time = time()
+            print(f"Marker ID {ids[i][0]}: Angle = {angle:.2f} degrees")
     
     # Show the frame
     cv.imshow("Aruco Detection", frame)
