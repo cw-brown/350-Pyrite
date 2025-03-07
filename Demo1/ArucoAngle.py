@@ -2,6 +2,11 @@ import numpy as np
 import cv2 as cv
 from time import sleep, time
 import pickle
+''' TODO:
+- Add threading to the LCD,
+- make functions
+
+'''
 
 # Load camera matrix and distortion coefficients
 with open("cameraMatrix.pkl", "rb") as f:
