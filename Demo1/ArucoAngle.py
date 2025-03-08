@@ -15,13 +15,16 @@ with open("dist.pkl", "rb") as f:
     dist = pickle.load(f)
 
 # Aruco marker dictionary and detector parameters
-dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50)
+dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50) # using a 6x6 marker
 parameters = cv.aruco.DetectorParameters()
 
-cap = cv.VideoCapture(0)
+# init the camera
+cap = cv.VideoCapture(0) 
+currentAngle = None
+lastAngle = None
 
-
-while True:
+# repeat until user hits 'q'
+while True: 
     ret, frame = cap.read()
     if not ret:
         continue
@@ -46,14 +49,20 @@ while True:
             
             # Angle between camera axis and marker
             angle = np.degrees(np.arctan2(tvec[0], tvec[2]))
+            currAngle = round(angle, 2) # round the angle to 2 decimal points. 
             
             # Draw marker and axis
-            cv.aruco.drawDetectedMarkers(frame, corners)
-            cv.drawFrameAxes(frame, cameraMatrix, dist, rvec, tvec, 0.03)
+            cv.aruco.drawDetectedMarkers(gray, corners)
+            cv.drawFrameAxes(gray, cameraMatrix, dist, rvec, tvec, 0.03)
             
-            # Print angle every specified interval
-            print(f"Marker ID {ids[i][0]}: Angle = {angle:.2f} degrees")
-    
+            # Print angle only when changed by 2 decimal points
+            if currentAngle != lastAngle:
+                # TODO add to the queue
+                print(f"Marker ID {ids[i][0]}: Angle = {currAngle} degrees")
+                lastAngle = currAngle
+    else:
+        currAngle = None
+
     # Show the frame
     cv.imshow("Aruco Detection", frame)
     
