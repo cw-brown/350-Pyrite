@@ -21,7 +21,7 @@ with open("dist.pkl", "rb") as f:
     dist = pickle.load(f)
 
 # Initialise the queue where the updated marker quadrants are stored
-lcdQueue = queue.Queue()
+##lcdQueue = queue.Queue()
 
 # Aruco marker dictionary and detector parameters
 dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50) # using a 6x6 marker
@@ -29,11 +29,11 @@ parameters = cv.aruco.DetectorParameters()
 
 
 # Initialise LCD rows and cols
-i2cLCD = board.I2C()  # uses board.SCL and board.SDA
-
-LCD_COLUMS = 16
-LCD_ROWS = 2
-lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
+##i2cLCD = board.I2C()  # uses board.SCL and board.SDA
+##
+##LCD_COLUMS = 16
+##LCD_ROWS = 2
+##lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
 
 # init the camera
 cap = cv.VideoCapture(0) 
@@ -41,35 +41,35 @@ currentAngle = None
 lastAngle = None
 
 
-def updateLCD():
-    print("Started LCD Thread")
-
-    #*********
-    # LCD Init
-    #*********
-    
-    # Initialise the LCD 
-    lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
-    lcd.clear()
-    lcd.color = [100, 0, 0]  # Set initial color (red)
-    print("LCD init done")
-
-    #***********************************************
-    # Update the LCD and send data only if necessary
-    #***********************************************
-    while True:
-        if not lcdQueue.empty():
-            angle = lcdQueue.get()
-            lcd.clear()
-            
+##def updateLCD():
+##    print("Started LCD Thread")
+##
+##    #*********
+##    # LCD Init
+##    #*********
+##    
+##    # Initialise the LCD 
+##    lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
+##    lcd.clear()
+##    lcd.color = [100, 0, 0]  # Set initial color (red)
+##    print("LCD init done")
+##
+##    #***********************************************
+##    # Update the LCD and send data only if necessary
+##    #***********************************************
+##    while True:
+##        if not lcdQueue.empty():
+##            angle = lcdQueue.get()
+##            lcd.clear()
+##            
 ##            if update:
-            lastAngle = angle # temp assignment in case of quick change in marker position
-            lcd.message = str(angle)
+##            lastAngle = angle # temp assignment in case of quick change in marker position
+##            lcd.message = str(angle)
             # Send the wheelLocation data to the Arduino using smbus2
 
 # Start the LCD update thread
-myThread = threading.Thread(target=updateLCD, daemon=True)
-myThread.start()
+##myThread = threading.Thread(target=updateLCD, daemon=True)
+##myThread.start()
 
 # repeat until user hits 'q'
 while True: 
@@ -97,7 +97,7 @@ while True:
             
             # Angle between camera axis and marker
             angle = np.degrees(np.arctan2(tvec[0], tvec[2]))
-            currAngle = round(angle, 2) # round the angle to 2 decimal points. 
+            currAngle = round(angle, 1) # round the angle to 2 decimal points. 
             
             # Draw marker and axis
             cv.aruco.drawDetectedMarkers(gray, corners)
@@ -106,9 +106,9 @@ while True:
             # Print angle only when changed by 2 decimal points
             if currAngle != lastAngle:
                 # TODO add to the queue
-                lcdQueue.put(currentAngle)  # Add the new angle to the queue
+##                lcdQueue.put(currentAngle)  # Add the new angle to the queue
 
-##                print(f"Marker ID {ids[i][0]}: Angle = {currAngle} degrees")
+                print(f"Marker ID {ids[i][0]}: Angle = {currAngle} degrees")
                 lastAngle = currAngle
     else:
         currAngle = None
