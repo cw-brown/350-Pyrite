@@ -2,10 +2,6 @@
 #include <Encoder.h> // for reading wheel encoders
 #include <Wire.h> // for communicating with Rasberry Pi
 
-// // Input stuff
-// float dist_feet = 10; // in feet
-// float distance = dist_feet/3.281; // in m
-
 // Wire and Pi stuff
 #define MY_ADDR 8  // Arduino I2C address
 volatile uint8_t reg;
@@ -50,27 +46,27 @@ float P[] = {.065*4,.0635*4};
 float I[] = {0.001,0.001};
 
 // Localization stuff
-const float r = 0.244791667; // Wheel radius in feet
-const float b = 1.28475; // Wheelbase in feet
+const float r = 0.251791667; // Wheel radius in feet
+const float b = 1.425; // Wheelbase in feet
 float t=0.0, x = 0.0, y = 0.0;
 
 // angle stuff
-float desiredPhi = PI; // in rad // new
+float desiredPhi = -45 * (-PI/180); // convert deg rad (only change # before the * sign) // new
 float phi = 0; // new
 float desiredPhiVel = 0; // new
 float errorPhi = 0; // new
 float derivativePhi = 0; // new
 float errorPhiInitial = 0; // new
 float integralPhi = 0; // new
-float KpPhi = 15; // new
+float KpPhi = 50; // new
 float KdPhi = 5; // new
-float KiPhi = .25; // new
+float KiPhi = 3.75; // new
 float phiVel = 0; // new
 float errorPhiVel = 0; // new
 float KpPhiVel = 2; // new
 
 // distance stuff
-float desiredRho = 6; // in feet // new
+float desiredRho = 4.2426; // in feet // new
 float desiredRhoInit = 0; // in feet // new
 float rho = 0; // new
 float desiredRhoVel = 0; // new
@@ -78,9 +74,9 @@ float errorRho = 0; // new
 float derivativeRho = 0; // new
 float errorRhoInitial = 0; // new
 float integralRho = 0; // new
-float KpRho = 20.3514; // new
+float KpRho = 30.3514; // new
 float KdRho = 2.2038; // new
-float KiRho = .383; // new
+float KiRho = 0.383; // new
 float rhoVel = 0; // new
 float errorRhoVel = 0; // new
 float KpRhoVel = .8; // new
@@ -149,7 +145,7 @@ void loop() {
         desiredPhiVel = -10; // arbitrary
       }
       desiredRho = 0;
-      if (phi <= desiredPhi + PI/180 && phi >= desiredPhi - PI/180) {
+      if (phi <= desiredPhi + PI/360 && phi >= desiredPhi - PI/360) {
         mode = MOVE_FWD;
       }
       break;
@@ -175,9 +171,9 @@ void loop() {
     derivativePhi = (errorPhi - errorPhiInitial)/((float)(ts/1000));
     integralPhi += errorPhi*((float)(ts/1000));
     desiredPhiVel = KpPhi*errorPhi + KdPhi*derivativePhi + KiPhi*integralPhi;
-    // if(abs(desiredPhiVel) > 10){
-    //   desiredPhiVel = 10*desiredPhiVel/abs(desiredPhiVel);
-    // }
+    if(abs(desiredPhiVel) > 10){
+      desiredPhiVel = 10*desiredPhiVel/abs(desiredPhiVel);
+    }
     phiVel = (r/b)*(vel[0]-vel[1]);
     errorPhiVel = desiredPhiVel - phiVel;
 
@@ -185,9 +181,9 @@ void loop() {
     derivativeRho = (errorRho - errorRhoInitial)/((float)(ts/1000));
     integralRho += errorRho*((float)(ts/1000));
     desiredRhoVel = errorRho*KpRho + KdRho*derivativeRho + KiRho*integralRho;
-    // if(abs(desiredRhoVel) > 10){
-    //     desiredRhoVel = 10*desiredRhoVel/abs(desiredRhoVel);
-    // }
+    if(abs(desiredRhoVel) > 10){
+        desiredRhoVel = 10*desiredRhoVel/abs(desiredRhoVel);
+    }
     rhoVel = (r/2)*(vel[0]+vel[1]);
     errorRhoVel = desiredRhoVel - rhoVel;
 
@@ -209,9 +205,6 @@ void loop() {
     deltaV = errorPhiVel*KpPhiVel;
     voltage[0] = (Vbar+deltaV)/2;
     voltage[1] = (Vbar-deltaV)/2;
-    // if (mode == ROTATE) {
-    //   voltage[0] = abs(voltage[1])*-1;
-    // }
     for (int i = 0; i < 2; i++) {
       if(voltage[i] > 0){
         digitalWrite(M_DIR[i], HIGH);
@@ -237,118 +230,9 @@ void loop() {
     //wait till desired time passes
   }
   last_time_ms = millis();
-
-
-
-  // float rad_pos[] = {0, 0};
-  // float actual_pos[] = {0, 0};
-  // actual_pos[0] = M1Enc.read(); // Gets actual position in counts for left motor
-  // actual_pos[1] = M2Enc.read(); // Gets actual position in counts for right motor
-
-  // // Calculate position in radians for left and right motors (used for finding pos_error)
-  // rad_pos[0] = 2 * PI * (float)actual_pos[0] / counts_per_rev;
-  // rad_pos[1] = 2 * PI * (float)actual_pos[1] / counts_per_rev;
-
-  // // Update old position in rads and counts for next time
-  // for (int i = 0; i < 2; i++){
-  //   old_pos_rad[i] = rad_pos[i];
-  //   old_pos_count[i] = actual_pos[i];
-  // }
-
-  // // Speed calculations
-  // float actual_speed[] = {0, 0};
-  // actual_speed[0] = (rad_pos[0] - old_pos_rad[0]) / (ts / 1000); // Calculates the current speed of left motor
-  // actual_speed[1] = (rad_pos[1] - old_pos_rad[1]) / (ts / 1000); //Calculates the current speed of right motor
-  // Serial.print("Left Speed: "); // debugging
-  // Serial.println(actual_speed[0]); // debugging
-
-
-  // // Control variables
-  // float integral_error[] = {0, 0};
-  // float pos_error[] = {0, 0};
-  // float error[] = {0, 0};
-  // float desired_speed[] = {0, 0};
-  // float Voltage[] = {0, 0};
-
-  // // Compute position calculations and control for each wheel in array
-  // for (int i = 0; i < 2; i++) {
-  //   pos_error[i] = desired_pos[i] - actual_pos[i];
-  //   // Serial.print("Position Error: "); // debugging
-  //   // Serial.println(pos_error[i]); // debugging
-  //   integral_error[i] += pos_error[i] * ((float) ts / 1000.0);
-  //   desired_speed[i] = P[i] * pos_error[i] + I[i] * integral_error[i];
-  //   error[i] = desired_speed[i] - actual_speed[i];
-  //   Voltage[i] = Kp[i] * error[i];
-  //   // if (abs(Voltage[i]) > battery_V) {
-  //   //   if (Voltage[i] > 0) {
-  //   //       Voltage[i] = battery_V;
-  //   //   } else {
-  //   //       Voltage[i] = -battery_V;
-  //   //   }
-  //   // }
-  //   if(Voltage[i] > 0){
-  //     digitalWrite(M_DIR[i], HIGH);
-  //   }
-  //   else{
-  //     digitalWrite(M_DIR[i], LOW);
-  //   }
-  //   pwm[i] = 255 * abs(Voltage[i]) / battery_V;
-  //   analogWrite(M_PWM[i], min(pwm[i], 255));
-
-  //   // Convert counts to wheel rotations (radians) using provided equations
-  //   float d_thetaL = ((actual_pos[0]-old_pos_count[0]) * 2.0 * PI) / counts_per_rev;
-  //   float d_thetaR = ((actual_pos[1]-old_pos_count[1]) * 2.0 * PI) / counts_per_rev;
-
-  //   // Compute wheel displacements using provided equations
-  //   float d_L = r * d_thetaL;  // Left wheel displacement
-  //   float d_R = r * d_thetaR;  // Right wheel displacement
-
-  //   // Update robot position using provided equations
-  //   x += cos(phi) * (d_L + d_R) / 2.0;
-  //   y += sin(phi) * (d_L + d_R) / 2.0;
-  //   phi += (d_R - d_L) / b;
-  // }
-
-  // oldL = countL;
-  // oldR = countR;
-
-  // old_pos[0] = new_pos[0];
-  // old_pos[1] = new_pos[1];
-
-  // // Convert counts to wheel rotations (radians)
-  // float d_thetaL = ((actual_pos[0]-old_pos_count[0]) * 2.0 * PI) / counts_per_rev;
-  // float d_thetaR = ((actual_pos[1]-old_pos_count[1]) * 2.0 * PI) / counts_per_rev;
-
-  // // Compute left wheel displacements
-  // new_pos[0] = r * d_thetaL;
-  // actual_pos[0]+=new_pos[0];
-  // actual_speed[0] = (float) (actual_pos[0]-old_pos[0]) / (float) ts;
-
-  // // Compute right wheel displacements
-  // new_pos[1] = r * d_thetaR;
-  // actual_pos[1]+=new_pos[1];
-  // actual_speed[1] = (float) (actual_pos[1]-old_pos[1]) / (float) ts;
 }
 
-// // ISR for Encoder 1
-// void ISR_encoder1Change() {
-//   if (digitalRead(M1ENCA) == digitalRead(M1ENCB)) {
-//     countL += 2;
-//   } else {
-//     countL -= 2;
-//   }
-// }
-
-// // ISR for Encoder 2
-// void ISR_encoder2Change() {
-//   if (digitalRead(M2ENCA) == digitalRead(M2ENCB)) {
-//     countR += 2;
-//   } else {
-//     countR -= 2;
-//   }
-// }
-
-// I2C interrupt for recieving data from Rasberry Pi
+// I2C interrupt for recieving data from Rasberry Pi (not used in demo 1)
 void receiveData (){
   // Set user num
   reg = Wire.read();
@@ -358,22 +242,3 @@ void receiveData (){
     // Serial.println(quad); // debugging
   }
 }
-
-// void receiveData(int numBytes) {
-//   if (Wire.available()) {
-//     String receivedMessage = "";
-    
-//     // Read the entire message
-//     while (Wire.available()) {
-//       char c = Wire.read();
-//       receivedMessage += c;
-//     }
-
-//     Serial.print("Received from Pi: ");
-//     Serial.println(receivedMessage);
-
-//     // Parse the received string (expected format: "0 0", "0 1", "1 0", "1 1")
-//     desired_pos[0] = 3.14 * receivedMessage[0] - '0'; // Convert char to int
-//     desired_pos[1] = 3.14 * receivedMessage[2] - '0'; // Convert char to int
-//   }
-// }
