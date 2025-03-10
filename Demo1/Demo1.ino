@@ -167,26 +167,33 @@ void loop() {
 
   // control
   if(mode == ROTATE || mode == MOVE_FWD) {
+    // PID control for angle
     errorPhi = desiredPhi - phi;
     derivativePhi = (errorPhi - errorPhiInitial)/((float)(ts/1000));
     integralPhi += errorPhi*((float)(ts/1000));
     desiredPhiVel = KpPhi*errorPhi + KdPhi*derivativePhi + KiPhi*integralPhi;
+    // limit set angular speed
     if(abs(desiredPhiVel) > 10){
       desiredPhiVel = 10*desiredPhiVel/abs(desiredPhiVel);
     }
+    // phiVel stuff
     phiVel = (r/b)*(vel[0]-vel[1]);
     errorPhiVel = desiredPhiVel - phiVel;
 
+    // PID control for distance
     errorRho = desiredRho - rho;
     derivativeRho = (errorRho - errorRhoInitial)/((float)(ts/1000));
     integralRho += errorRho*((float)(ts/1000));
     desiredRhoVel = errorRho*KpRho + KdRho*derivativeRho + KiRho*integralRho;
+    // limit set fwd speed
     if(abs(desiredRhoVel) > 10){
         desiredRhoVel = 10*desiredRhoVel/abs(desiredRhoVel);
     }
+    // rhoVel stuff
     rhoVel = (r/2)*(vel[0]+vel[1]);
     errorRhoVel = desiredRhoVel - rhoVel;
 
+    // print/debugging statements
     Serial.print(mode);
     Serial.print("\t");
     Serial.print(rho);
@@ -201,6 +208,7 @@ void loop() {
     Serial.print("\t");
     Serial.println(voltage[1]);
 
+    // voltage calculations and setting
     Vbar = errorRhoVel*KpRhoVel;
     deltaV = errorPhiVel*KpPhiVel;
     voltage[0] = (Vbar+deltaV)/2;
