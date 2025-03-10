@@ -1,0 +1,1 @@
+This folder contains C code for the control portion on Arduino.

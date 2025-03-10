@@ -20,25 +20,33 @@ long unsigned int ts = 10;  // Sample time in milliseconds
 
 // Drive Vars
 float pwm[] = {0, 0}; // PWM for motors
-float battery_V = 7.5; // Battery voltage as set on robot's motor shield
+float battery_V = 7.3; // Battery voltage as set on robot's motor shield
 
-// inner control parameters
-float Kp_inner_velocity = 0.087;
-float Kp_inner_angle = 0.15;
-float desired_inst_velocity = 0;
-float desired_rot_angle = 0;
+// inner control parameters - Angle
+float Kp_inner_angle = 1;
+float desired_rot_angle;
 float angle_error;
 
-float fudge = 1.106;
+// Outer control loop - Angle
+float Kp_outer_angle = 2.5;
+float Ki_outer_angle = 0.35;
+float Kd_outer_angle = 0.9;
+float rot_error, rot_error_prev;
+float desired_angle = 2*PI;
+float rot_integral, rot_deriv;
 
-// Outer control loop
-float Kp_outer = 22;
-float Ki_outer = 0.85;
-float Kd_outer = 26;
-float velocity_error, rot_error, rot_error_prev;
-float desired_angle = 2*PI - fudge;
-float rot_integral;
-float rot_deriv;
+// Inner control parameters - Position
+float desired_inst_velocity=2.5;
+float Kp_inner_velocity = 1;
+float velocity_error;
+
+// Outer control parameters - Position
+float Kp_outer_pos = 1.3514;
+float Ki_outer_pos = .883;
+float Kd_outer_pos = 0.001;
+float pos_error, pos_error_prev;
+float desired_pos = 0;
+float pos_integral, pos_deriv;
 
 // Localization stuff
 float r = 0.0746125; // Wheel radius in meters
@@ -81,20 +89,6 @@ void loop() {
   actual_pos[1] = M2Enc.read(); // Gets actual position in counts for right motor
 
   if(millis() % ts == 0){
-    // Handle left wheel roll over to reset rotational position
-    // if (actual_pos[0] >= counts_per_rev){
-    //   actual_pos[0] = actual_pos[0] - counts_per_rev;
-    // } else if (actual_pos[0] <= -counts_per_rev){
-    //   actual_pos[0] = actual_pos[0] + counts_per_rev;
-    // }
-    
-    // // Handle right wheel roll over to reset rotational position
-    // if (actual_pos[1] >= counts_per_rev){
-    //   actual_pos[1] = actual_pos[1] - counts_per_rev;
-    // } else if (actual_pos[0] <= -counts_per_rev){
-    //   actual_pos[1] = actual_pos[1] + counts_per_rev;
-    // }
-
     // Calculate position in radians for left and right motors (used for finding pos_error)
     rad_pos[0] = 2 * PI * (float)actual_pos[0] / counts_per_rev;
     rad_pos[1] = 2 * PI * (float)actual_pos[1] / counts_per_rev;
@@ -105,28 +99,29 @@ void loop() {
     actual_speed[1] = (rad_pos[1] - old_pos_rad[1]) / ((float)ts / 1000.0); // Calculates the current speed of right motor
 
     // Calculate instantaneous forward velocity
-    float instvelocity = r*(actual_speed[0]+actual_speed[1])/2; 
+    float inst_velocity = r*(actual_speed[0]+actual_speed[1])/2; 
 
     // Calculate angle
     float rot_velocity = r*(actual_speed[0]-actual_speed[1])/b;
     float phi = r*(rad_pos[0]-rad_pos[1])/b;
 
-    // Outer control loop for desired angle and velocity
+    // Outer control loop - Angle
     rot_error = desired_angle - phi; // radians
     rot_integral += rot_error * ((float)ts/1000.0);
     rot_deriv = (rot_error - rot_error_prev) / ((float)ts/1000.0);
-    desired_rot_angle = Kp_outer*rot_error + Ki_outer*rot_integral + Kd_outer*rot_deriv;
+    desired_rot_angle = Kp_outer_angle*rot_error + Ki_outer_angle*rot_integral + Kd_outer_angle*rot_deriv;
 
-    // Inner loop for control of instantaneous velocit, angle. Basic proportional
-    velocity_error = desired_inst_velocity - instvelocity;
-    voltage_a = Kp_inner_velocity * velocity_error;
+    // Inner control loop - Angular Velocity
     angle_error = desired_rot_angle - rot_velocity;
     delta_voltage = Kp_inner_angle * angle_error;
+
+    // Inner control loop - Velocity
+    velocity_error = desired_inst_velocity - inst_velocity;
+    voltage_a = Kp_inner_velocity * velocity_error;
 
     voltage[0] = (voltage_a+delta_voltage)/2;
     voltage[1] = (voltage_a-delta_voltage)/2;
     
-
     for (int i = 0; i < 2; i++){
       if(voltage[i] > 0){
         digitalWrite(M_DIR[i], HIGH);
@@ -134,23 +129,29 @@ void loop() {
       else{
         digitalWrite(M_DIR[i], LOW);
       }
-      pwm[i] = 255 * abs(voltage[i]) / battery_V;
+      pwm[i] = 255 * max(abs(voltage[i]),0.01) / battery_V;
       analogWrite(M_PWM[i], min(pwm[i], 255));
     }
 
-    if(millis() % ts == 0){
+    if(millis() % 100 == 0){
+      Serial.print("Time: ");
       Serial.print(millis());
       Serial.print(",");
-      Serial.print(instvelocity);
+      Serial.print("Voltage: ");
+      Serial.print((voltage[0]+voltage[1])/2);
       Serial.print(",");
-      Serial.print(rot_velocity);
-      Serial.print(",");
+      Serial.print("Angle: ");
       Serial.print(phi);
       Serial.print(",");
-      Serial.print(desired_rot_angle);
+      Serial.print("Velocity: ");
+      Serial.print(inst_velocity);
       Serial.print(",");
+      Serial.print("Angle Error: ");
+      Serial.print(angle_error);
+      Serial.print(",");
+      Serial.print("Velocity Error: ");
       Serial.print(velocity_error);
-      Serial.print(voltage[0]);
+      Serial.print(",");
       Serial.print("\r\n");
     }
     // Update old position in rads and counts for next time
