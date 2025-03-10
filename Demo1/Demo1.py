@@ -8,13 +8,10 @@ import queue
 import board
 
 
-''' TODO:
-- Add threading to the LCD,
-- make functions
-
+''' 
 '''
 
-# Load camera matrix and distortion coefficients
+# Load camera calibration information
 with open("cameraMatrix.pkl", "rb") as f:
     cameraMatrix = pickle.load(f)
 with open("dist.pkl", "rb") as f:
@@ -28,7 +25,7 @@ dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50) # using a 6x
 parameters = cv.aruco.DetectorParameters()
 
 
-# Initialise LCD rows and cols
+# Initialise LCD rows and cols COMMENT IN FOR LCD
 ##i2cLCD = board.I2C()  # uses board.SCL and board.SDA
 ##
 ##LCD_COLUMS = 16
@@ -60,13 +57,10 @@ def updateLCD():
     while True:
         if not lcdQueue.empty():
             angle = lcdQueue.get()
-##            lcd.clear()
-            
-            
+##            lcd.clear() 
             lastAngle = angle # temp assignment in case of quick change in marker position
             print(f"Marker ID {ids[i][0]}: Angle = {angle} degrees")
-##            lcd.message = str(angle)
-            # Send the wheelLocation data to the Arduino using smbus2
+##            lcd.message = str(angle) # COMMENT IN FOR LCD
 
 # Start the LCD update thread
 myThread = threading.Thread(target=updateLCD, daemon=True)
