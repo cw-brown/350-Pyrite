@@ -51,7 +51,7 @@ const float b = 1.425; // Wheelbase in feet
 float t=0.0, x = 0.0, y = 0.0;
 
 // angle stuff
-float desiredPhi = -45 * (-PI/180); // convert deg rad (only change # before the * sign) // new
+float desiredPhi = 167 * (-PI/180); // convert deg rad (only change # before the * sign) // new
 float phi = 0; // new
 float desiredPhiVel = 0; // new
 float errorPhi = 0; // new
@@ -66,7 +66,7 @@ float errorPhiVel = 0; // new
 float KpPhiVel = 2; // new
 
 // distance stuff
-float desiredRho = 4.2426; // in feet // new
+float desiredRho = 2; // in feet // new
 float desiredRhoInit = 0; // in feet // new
 float rho = 0; // new
 float desiredRhoVel = 0; // new
