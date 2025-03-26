@@ -10,8 +10,12 @@ import board
 
 ''' 
 '''
+# TODO:
+# Need to add distance sensing
+# Need to add color sensing
+# Need to decide how to send directions to the arduino
 
-# Load camera calibration information
+# Camera Calibration
 with open("cameraMatrix.pkl", "rb") as f:
     cameraMatrix = pickle.load(f)
 with open("dist.pkl", "rb") as f:
