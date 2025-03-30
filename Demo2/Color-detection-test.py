@@ -1,38 +1,64 @@
 import cv2 as cv
 import numpy as np
 
+# Load the camera calibration data
+# cameraMatrix and dist are assumed to be loaded from pickle files as you have in your code
+
+# ArUco marker dictionary and detector parameters
+dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50)
+parameters = cv.aruco.DetectorParameters()
+
 # Start video capture
 cap = cv.VideoCapture(0)
 
-# Define HSV color ranges
-color_ranges = {
-    "red": [(0, 120, 70), (10, 255, 255)],  # Red (Hue can be 0-10 or 170-180)
-    "blue": [(100, 150, 50), (140, 255, 255)],  # Blue
-    "green": [(40, 50, 50), (90, 255, 255)],  # Green
-}
+# Define HSV color range for detecting a color (e.g., red)
+color_range = [(0, 120, 70), (10, 255, 255)]  # Red color range in HSV
 
 while True:
     ret, frame = cap.read()
     if not ret:
         break
+    
+    # Convert the frame to grayscale
+    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-    # Convert frame to HSV color space
-    hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+    # Detect ArUco markers
+    corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
+    
+    if ids is not None:
+        for i in range(len(ids)):
+            # Get the coordinates of the marker corners
+            marker_corners = corners[i][0]
+            x_min, y_min = np.min(marker_corners, axis=0).astype(int)
+            x_max, y_max = np.max(marker_corners, axis=0).astype(int)
+            
+            # Draw the detected marker on the frame
+            cv.aruco.drawDetectedMarkers(frame, corners, ids)
 
-    detected_color = "None"
-    for color, (lower, upper) in color_ranges.items():
-        mask = cv.inRange(hsv, np.array(lower), np.array(upper))
-        if cv.countNonZero(mask) > 500:  # Adjust threshold as needed
-            detected_color = color
-            break
+            # Define the region to the right of the marker (with an offset)
+            offset = 20  # Pixels to shift the region to the right
+            roi_x_min = max(0, x_max + offset)
+            roi_x_max = min(frame.shape[1], roi_x_min + (x_max - x_min))
+            roi_y_min = y_min
+            roi_y_max = y_max
 
-    # Display detected color on the frame
-    cv.putText(frame, f"Color: {detected_color}", (50, 50), cv.FONT_HERSHEY_SIMPLEX, 
-               1, (255, 255, 255), 2, cv.LINE_AA)
+            # Extract the region of interest (ROI) to the right of the marker
+            roi = frame[roi_y_min:roi_y_max, roi_x_min:roi_x_max]
 
-    cv.imshow("Color Detection", frame)
+            # Convert the ROI to HSV color space
+            hsv_roi = cv.cvtColor(roi, cv.COLOR_BGR2HSV)
 
-    # Exit when 'q' is pressed
+            # Threshold the HSV image to detect red color
+            mask = cv.inRange(hsv_roi, np.array(color_range[0]), np.array(color_range[1]))
+            result = cv.bitwise_and(roi, roi, mask=mask)
+
+            # Display the result of color detection in the ROI
+            cv.imshow("Color Detected", result)
+
+    # Show the frame with ArUco markers
+    cv.imshow("Frame with ArUco", frame)
+
+    # Exit if 'q' is pressed
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
 
