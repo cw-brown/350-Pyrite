@@ -1,15 +1,20 @@
 import cv2 as cv
 import numpy as np
 
-# Load the camera calibration data
-# cameraMatrix and dist are assumed to be loaded from pickle files as you have in your code
-
 # ArUco marker dictionary and detector parameters
 dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50)
 parameters = cv.aruco.DetectorParameters()
 
-# Read a single image frame (you can replace this with your actual frame source)
-frame = cv.imread("image.jpg")  # Replace with the path to your image
+# Start video capture
+cap = cv.VideoCapture(0)  # Capture from the camera
+
+# Capture a single frame
+ret, frame = cap.read()  # Capture a single frame
+if not ret:
+    print("Failed to capture frame")
+    cap.release()
+    cv.destroyAllWindows()
+    exit()
 
 # Convert the frame to grayscale
 gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
@@ -56,3 +61,5 @@ cv.imshow("ArUco and Color Detection", frame)
 # Wait for the user to press a key and then close the window
 cv.waitKey(0)
 cv.destroyAllWindows()
+
+cap.release()
