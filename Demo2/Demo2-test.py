@@ -62,10 +62,9 @@ def updateLCD():
     #***********************************************
     while True:
         if not lcdQueue.empty():
-            angle = lcdQueue.get()
+            data = lcdQueue.get()
             lcd.clear() 
-##            print(f"Angle = {angle} degrees")
-            lcd.message = str(angle) # COMMENT IN FOR LCD
+            lcd.message = str(data) # COMMENT IN FOR LCD
 
     
 def get_angle(cnrs):
@@ -163,22 +162,21 @@ while True:
         currAngle = get_angle(corners)
         currDistance = get_distance(corners)
 
-        # If the distance is within 1 foot threshold, start detecting the color
-        if currDistance <= 1:  # If the distance is <= 1 foot (3.28 meters)
-            currColor = get_color(corners, frame)
-        else:
-            currColor = "No color detected"
+        # Before 1 foot, display distance and angle
+        if currDistance > 1:  # If the distance is > 1 foot (3.28 meters)
+            if currAngle != lastAngle or currDistance != lastDistance:
+                lcdQueue.put(f"Dist: {currDistance} ft\nAngle: {currAngle}°")
+                lastAngle = currAngle
+                lastDistance = currDistance
 
-        # Update LCD only when necessary (based on the angle, distance, or color change)
-        if time() - last_update_time >= 0.5:
-            if currAngle != lastAngle:
-                lastAngle = currAngle # update the angle
-            if currDistance != lastDistance:
-                lastDistance = currDistance # update the distance
+        # If the distance is within 1 foot, start detecting color and show it
+        elif currDistance <= 1:  # If the distance is <= 1 foot (3.28 meters)
+            currColor = get_color(corners, frame)
             if currColor != lastColor:
-                lastColor = currColor # update the color
-            lcdQueue.put(f"Dist: {currDistance} ft\nAngle: {currAngle}°\nColor: {currColor}")
-            last_update_time = time()    
+                lcdQueue.put(f"Color: {currColor}")
+                lastColor = currColor
+
+        last_update_time = time()    
 
     else:
         currAngle = None
