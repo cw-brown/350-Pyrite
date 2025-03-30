@@ -38,7 +38,7 @@ while True:
             cv.aruco.drawDetectedMarkers(frame, corners, ids)
 
             # Define the region to the right and left of the marker (with an offset)
-            offset = 30  # Pixels to shift the region to the right or left
+            offset = 100  # Pixels to shift the region to the right or left
             roi_x_min_left = max(0, x_min - offset)
             roi_x_max_left = x_min
             roi_x_min_right = x_max
@@ -70,9 +70,9 @@ while True:
 
             # Check if any pixels are detected for red or green color in the right or left regions
             if np.count_nonzero(red_mask_right) > 0:
-                color_detected = "Red arrow on the right!"
+                color_detected = "Red"
             elif np.count_nonzero(green_mask_left) > 0:
-                color_detected = "Green arrow on the left!"
+                color_detected = "Green"
 
     # Display the detected color on the frame
     cv.putText(frame, color_detected, (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv.LINE_AA)
