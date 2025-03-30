@@ -59,7 +59,7 @@ def updateLCD():
             angle = lcdQueue.get()
 ##            lcd.clear() 
             lastAngle = angle # temp assignment in case of quick change in marker position
-            print(f"Marker ID {ids[i][0]}: Angle = {angle} degrees")
+            print(f"Marker ID {ids[i][0]}: Angle = {lastAngle} degrees")
 ##            lcd.message = str(angle) # COMMENT IN FOR LCD
 
 # Start the LCD update thread
