@@ -36,6 +36,7 @@ lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
 cap = cv.VideoCapture(0) 
 currentAngle = None
 lastAngle = None
+last_update_time = time()
 
 
 def updateLCD():
@@ -58,7 +59,6 @@ def updateLCD():
         if not lcdQueue.empty():
             angle = lcdQueue.get()
             lcd.clear() 
-##            lastAngle = angle # temp assignment in case of quick change in marker position
 ##            print(f"Angle = {angle} degrees")
             lcd.message = str(angle) # COMMENT IN FOR LCD
 
@@ -92,16 +92,18 @@ while True:
             
             # Angle between camera axis and marker
             angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
-            currAngle = round(angle, 1) # round the angle to 1 decimal points. 
+            currAngle = round(angle, 2) # round the angle to 1 decimal points. 
 ##            currAngleAccurate = round(angle, 2)
             # Draw marker and axis
 ##            cv.aruco.drawDetectedMarkers(gray, corners) # NOT SURE IF WE NEED THIS
 ##            cv.drawFrameAxes(gray, cameraMatrix, dist, rvec, tvec, 0.03)
             
-            # Add the angle to the queue
-            if currAngle != lastAngle and currAngle != None:
-                lcdQueue.put(currAngle)  # Add the new angle to the queue
-                lastAngle = currAngle # update the angle
+            # Add the angle to the queue every .1 sec
+            if currAngle != lastAngle:
+                if time() - last_update_time >= 0.5:
+                    lcdQueue.put(currAngle)  # Add the new angle to the queue
+                    lastAngle = currAngle # update the angle
+                    last_update_time = time()
     else:
         currAngle = None
 
