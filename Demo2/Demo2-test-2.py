@@ -90,7 +90,7 @@ def get_distance(cnrs):
     return distance
 
 def get_color():
-    color = 0
+    
     return color
 
 # Start the LCD update thread
