@@ -36,6 +36,9 @@ lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
 cap = cv.VideoCapture(0) 
 currentAngle = None
 lastAngle = None
+currentDistance = None
+lastDistance= None
+
 last_update_time = time()
 
 
@@ -79,7 +82,11 @@ def get_angle(cnrs):
     return angle
 
 def get_distance(cnrs):
-    distance = 0
+    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
+    for i in range(len(ids)):
+        rvec = rvecs[i][0]
+        tvec = tvecs[i][0]
+        distance = round(tvec[2]*3.28,2)
     return distance
 
 def get_color():
@@ -107,18 +114,35 @@ while True:
     
     if ids is not None:
         currAngle = get_angle(corners)
+        currDistance = get_distance(corners)
+        
 ##            # Draw marker and axis
 ####            cv.aruco.drawDetectedMarkers(gray, corners) # NOT SURE IF WE NEED THIS
 ####            cv.drawFrameAxes(gray, cameraMatrix, dist, rvec, tvec, 0.03)
 ##            
 ##            # Add the angle to the queue every .1 sec
-        if currAngle != lastAngle:
-            if time() - last_update_time >= 0.5:
-                lcdQueue.put(currAngle)  # Add the new angle to the queue
+##        if currAngle != lastAngle:
+##            if time() - last_update_time >= 0.5:
+##                lcdQueue.put(currAngle)  # Add the new angle to the queue
+##                lastAngle = currAngle # update the angle
+##                last_update_time = time()
+##
+##        if currDistance != lastDistance:
+##            if time() - last_update_time >= 0.5:
+##                lcdQueue.put(currDistance)  # Add the new angle to the queue
+##                lastDistance = currDistance # update the angle
+##                last_update_time = time()
+        if time() - last_update_time >= 0.5:
+            if currAngle != lastAngle:
                 lastAngle = currAngle # update the angle
-                last_update_time = time()
-        else:
-            currAngle = None
+            if currDistance != lastDistance:
+                lastDistance = currDistance # update the distance
+            lcdQueue.put(str(currDistance) + " " + str(currAngle))
+            last_update_time = time()    
+            
+    else:
+        currAngle = None
+        currDistance = None
 
     # Show the frame
     cv.imshow("Aruco Detection", gray)
