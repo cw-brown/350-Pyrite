@@ -53,13 +53,15 @@ while True:
 
             # Threshold the HSV image to detect red color
             mask = cv.inRange(hsv_roi, np.array(color_range[0]), np.array(color_range[1]))
-            result = cv.bitwise_and(roi, roi, mask=mask)
 
-            # Replace the ROI with the color-detected result in the original frame
-            frame[roi_y_min:roi_y_max, roi_x_min:roi_x_max] = result
+            # Check if any pixels are detected (i.e., if there's red color in the region)
+            if np.count_nonzero(mask) > 0:
+                print("Red color detected!")
+            else:
+                print("No red color detected.")
 
-    # Display the live feed with ArUco detection and color detection
-    cv.imshow("ArUco and Color Detection", frame)
+    # Show the live feed with ArUco detection
+    cv.imshow("ArUco Detection", frame)
 
     # Exit the loop if 'q' is pressed
     if cv.waitKey(1) & 0xFF == ord('q'):
