@@ -25,6 +25,8 @@ while True:
     # Detect ArUco markers
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
 
+    color_detected = "No color detected"  # Default message
+
     if ids is not None:
         for i in range(len(ids)):
             # Get the coordinates of the marker corners
@@ -48,20 +50,29 @@ while True:
             # Convert the ROI to HSV color space
             hsv_roi = cv.cvtColor(roi, cv.COLOR_BGR2HSV)
 
-            # Define the color range (e.g., red)
-            color_range = [(0, 120, 70), (10, 255, 255)]  # Red color range in HSV
+            # Define color ranges for red and green in HSV
+            red_range_1 = [(0, 120, 70), (10, 255, 255)]  # Lower red range
+            red_range_2 = [(170, 120, 70), (180, 255, 255)]  # Upper red range
+            green_range = [(40, 40, 40), (80, 255, 255)]  # Green range
 
-            # Threshold the HSV image to detect red color
-            mask = cv.inRange(hsv_roi, np.array(color_range[0]), np.array(color_range[1]))
+            # Threshold the HSV image to detect red and green colors
+            red_mask_1 = cv.inRange(hsv_roi, np.array(red_range_1[0]), np.array(red_range_1[1]))
+            red_mask_2 = cv.inRange(hsv_roi, np.array(red_range_2[0]), np.array(red_range_2[1]))
+            red_mask = cv.bitwise_or(red_mask_1, red_mask_2)  # Combine both red ranges
 
-            # Check if any pixels are detected (i.e., if there's red color in the region)
-            if np.count_nonzero(mask) > 0:
-                print("Red color detected!")
-            else:
-                print("No red color detected.")
+            green_mask = cv.inRange(hsv_roi, np.array(green_range[0]), np.array(green_range[1]))
 
-    # Show the live feed with ArUco detection
-    cv.imshow("ArUco Detection", frame)
+            # Check if any pixels are detected for red or green color
+            if np.count_nonzero(red_mask) > 0:
+                color_detected = "Red color detected!"
+            elif np.count_nonzero(green_mask) > 0:
+                color_detected = "Green color detected!"
+
+    # Display the detected color on the frame
+    cv.putText(frame, color_detected, (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv.LINE_AA)
+
+    # Show the live feed with ArUco detection and the color message
+    cv.imshow("ArUco and Color Detection", frame)
 
     # Exit the loop if 'q' is pressed
     if cv.waitKey(1) & 0xFF == ord('q'):
