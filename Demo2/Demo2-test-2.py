@@ -62,6 +62,30 @@ def updateLCD():
 ##            print(f"Angle = {angle} degrees")
             lcd.message = str(angle) # COMMENT IN FOR LCD
 
+    
+def get_angle(cnrs):
+    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
+        
+    for i in range(len(ids)):
+        rvec = rvecs[i][0]
+        tvec = tvecs[i][0]
+        
+        # Compute rotation matrix
+        R, _ = cv.Rodrigues(rvec)
+        
+        # Angle between camera axis and marker
+        angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
+        angle = round(angle, 2) # round the angle to 2 decimal points. 
+    return angle
+
+def get_distance(cnrs):
+    distance = 0
+    return distance
+
+def get_color():
+    color = 0
+    return color
+
 # Start the LCD update thread
 myThread = threading.Thread(target=updateLCD, daemon=True)
 myThread.start()
@@ -80,32 +104,21 @@ while True:
     
     # Detect Aruco markers
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
+    
     if ids is not None:
-        rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, dist)
-        
-        for i in range(len(ids)):
-            rvec = rvecs[i][0]
-            tvec = tvecs[i][0]
-            
-            # Compute rotation matrix
-            R, _ = cv.Rodrigues(rvec)
-            
-            # Angle between camera axis and marker
-            angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
-            currAngle = round(angle, 2) # round the angle to 1 decimal points. 
-##            currAngleAccurate = round(angle, 2)
-            # Draw marker and axis
-##            cv.aruco.drawDetectedMarkers(gray, corners) # NOT SURE IF WE NEED THIS
-##            cv.drawFrameAxes(gray, cameraMatrix, dist, rvec, tvec, 0.03)
-            
-            # Add the angle to the queue every .1 sec
-            if currAngle != lastAngle:
-                if time() - last_update_time >= 0.5:
-                    lcdQueue.put(currAngle)  # Add the new angle to the queue
-                    lastAngle = currAngle # update the angle
-                    last_update_time = time()
-    else:
-        currAngle = None
+        currAngle = get_angle(corners)
+##            # Draw marker and axis
+####            cv.aruco.drawDetectedMarkers(gray, corners) # NOT SURE IF WE NEED THIS
+####            cv.drawFrameAxes(gray, cameraMatrix, dist, rvec, tvec, 0.03)
+##            
+##            # Add the angle to the queue every .1 sec
+        if currAngle != lastAngle:
+            if time() - last_update_time >= 0.5:
+                lcdQueue.put(currAngle)  # Add the new angle to the queue
+                lastAngle = currAngle # update the angle
+                last_update_time = time()
+        else:
+            currAngle = None
 
     # Show the frame
     cv.imshow("Aruco Detection", gray)
