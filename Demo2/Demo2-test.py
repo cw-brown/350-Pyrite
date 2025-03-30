@@ -91,15 +91,12 @@ def get_distance(cnrs):
         distance = round(tvec[2]*3.28,2)  # Convert meters to feet
     return distance
 
-def get_color(cnrs, frame):
+def get_color(cnrs):
     for i in range(len(ids)):
         # Get the coordinates of the marker corners
         marker_corners = cnrs[i][0]
         x_min, y_min = np.min(marker_corners, axis=0).astype(int)
         x_max, y_max = np.max(marker_corners, axis=0).astype(int)
-
-        # Draw the detected marker on the frame
-        cv.aruco.drawDetectedMarkers(frame, cnrs, ids)
 
         # Define the region to the right and left of the marker (with an offset)
         offset = 100  # Pixels to shift the region to the right or left
@@ -165,9 +162,14 @@ while True:
 
         # If the distance is within 1 foot threshold, start detecting the color
         if currDistance <= 1:  # If the distance is <= 1 foot (3.28 meters)
-            currColor = get_color(corners, frame)
+            currColor = get_color(corners)
+            currDistance = 0
+            if currColor == "Green":
+                currAngle = 90
+            elif currColor == "Red":
+                currAngle = -90
         else:
-            currColor = "No color detected"
+            currColor = "None"
 
         # Update LCD only when necessary (based on the angle, distance, or color change)
         if time() - last_update_time >= 0.5:
@@ -177,13 +179,13 @@ while True:
                 lastDistance = currDistance # update the distance
             if currColor != lastColor:
                 lastColor = currColor # update the color
-            lcdQueue.put(f"Dist: {currDistance} ft\nAngle: {currAngle}°\nColor: {currColor}")
+            lcdQueue.put(f"{currDistance} {currAngle} {currColor}")
             last_update_time = time()    
 
     else:
         currAngle = None
         currDistance = None
-        currColor = "No marker detected"
+        currColor = "None"
 
     # Show the frame
     cv.imshow("Aruco Detection", frame)
