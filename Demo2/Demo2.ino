@@ -5,6 +5,9 @@
 // Wire and Pi stuff
 #define MY_ADDR 8  // Arduino I2C address
 volatile uint8_t reg;
+#define MSG_SIZE 8  // 2 floats * 4 bytes each
+volatile uint8_t msgLength = 0;
+uint8_t msg[12];  // Buffer to hold received bytes
 // recieved data from camera
 float markerPhi;  // new
 float markerRho;  // new
@@ -130,26 +133,20 @@ void setup() {
 
 void loop() {
   // If there is data, read it
-  if (msgLength > 0) {  //data from PI
-    char buffer[32]; // Adjust the size as needed
-    int index = 0;
+  if (msgLength == MSG_SIZE) {  // Ensure we received the expected 8 bytes
+    float values[2]; 
+    memcpy(values, msg, MSG_SIZE);  // Convert bytes into float array
 
-    // Read data into the buffer
-    while (Wire.available() && index < sizeof(buffer) - 1) {
-        buffer[index++] = Wire.read();
-    }
-    buffer[index] = '\0'; // Null-terminate the string
+    // Extract values
+    float distance = values[0];
+    float angle = values[1];
 
-    // Convert the buffer to a string and parse values
-    String receivedData = String(buffer);
-    int firstSpace = receivedData.indexOf(' ');
-    int secondSpace = receivedData.indexOf(' ', firstSpace + 1);
+    // Debugging output
+    Serial.print("Distance: "); Serial.println(distance);
+    Serial.print("Angle: "); Serial.println(angle);
 
-    if (firstSpace != -1 && secondSpace != -1) {
-        mode = receivedData.substring(0, firstSpace).toInt();
-        markerPhi = receivedData.substring(firstSpace + 1, secondSpace).toFloat();
-        markerRho = receivedData.substring(secondSpace + 1).toFloat();
-    }
+    // Reset for next message
+    msgLength = 0;
   }
 
   // time-keeping
@@ -348,9 +345,6 @@ void loop() {
 
 // I2C interrupt for recieving data from Rasberry Pi (not used in demo 1)
 void receiveData (){
-  // Set the offset, always first byte.
-  offset = Wire.read();
-  // If there is information after the offset, it is telling us more about the command.
   while (Wire.available()) {
     msg[msgLength] = Wire.read();
     msgLength++;
