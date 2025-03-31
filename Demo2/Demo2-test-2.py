@@ -187,7 +187,7 @@ while True:
             if currDistance != lastDistance:
                 lastDistance = currDistance # update the distance
             if lastColor != lastColor:
-                lastDistance = currColor # update the distance
+                lastColor = currColor # update the color
             lcdQueue.put(str(currDistance) + " " + str(currAngle) + " " + currColor)
             last_update_time = time()    
             

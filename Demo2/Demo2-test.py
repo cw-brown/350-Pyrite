@@ -40,6 +40,7 @@ currentDistance = None
 lastDistance= None
 currentColor = None
 lastColor= None
+lcdPrompt = []
 
 last_update_time = time()
 
@@ -54,7 +55,7 @@ def updateLCD():
     # Initialise the LCD 
     lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
     lcd.clear()
-    lcd.color = [100, 0, 0]  # Set initial color (red)
+    lcd.color = [10, 0, 0]  # Set initial color (red)
     print("LCD init done")
 
     #***********************************************
@@ -64,8 +65,7 @@ def updateLCD():
         if not lcdQueue.empty():
             angle = lcdQueue.get()
             lcd.clear() 
-##            print(f"Angle = {angle} degrees")
-            lcd.message = str(angle) # COMMENT IN FOR LCD
+            lcd.message = str(angle)
 
     
 def get_angle(cnrs):
@@ -80,7 +80,7 @@ def get_angle(cnrs):
         
         # Angle between camera axis and marker
         angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
-        angle = round(angle, 2) # round the angle to 2 decimal points. 
+        angle = round(angle, 1) # round the angle to 2 decimal points. 
     return angle
 
 def get_distance(cnrs):
@@ -88,7 +88,7 @@ def get_distance(cnrs):
     for i in range(len(ids)):
         rvec = rvecs[i][0]
         tvec = tvecs[i][0]
-        distance = round(tvec[2]*3.28,2)  # Convert meters to feet
+        distance = round(tvec[2]*3.28,1)  # Convert meters to feet
     return distance
 
 def get_color(cnrs):
@@ -157,10 +157,10 @@ while True:
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
 
     if ids is not None:
-        currAngle = get_angle(corners)
-        currDistance = get_distance(corners)
+        currAngle = get_angle(corners) # find the angle
+        currDistance = get_distance(corners) # find the distance
 
-        # If the distance is within 1 foot threshold, start detecting the color
+        # Check the distance ( > 1 or <= 1)
         if currDistance <= 1:  # If the distance is <= 1 foot (3.28 meters)
             currColor = get_color(corners)
             currDistance = 0
@@ -169,23 +169,25 @@ while True:
             elif currColor == "Red":
                 currAngle = -90
         else:
-            currColor = "None"
+            currColor = None
+            
 
         # Update LCD only when necessary (based on the angle, distance, or color change)
-        if time() - last_update_time >= 0.5:
+        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance or currColor != lastColor):
             if currAngle != lastAngle:
                 lastAngle = currAngle # update the angle
             if currDistance != lastDistance:
                 lastDistance = currDistance # update the distance
             if currColor != lastColor:
                 lastColor = currColor # update the color
-            lcdQueue.put(f"{currDistance} {currAngle} {currColor}")
+            lcdPrompt = [currDistance, currAngle]
+            lcdQueue.put(f"{lcdPrompt}")
             last_update_time = time()    
 
     else:
         currAngle = None
         currDistance = None
-        currColor = "None"
+        currColor = None
 
     # Show the frame
     cv.imshow("Aruco Detection", frame)
