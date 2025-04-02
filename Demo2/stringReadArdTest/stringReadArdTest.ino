@@ -30,11 +30,11 @@ void printReceived() {
 //  Serial.print(instruction);
 
   for (int i=0;i<msgLength;i++) {
-    Serial.print("     ");
+//    Serial.print("     ");
     Serial.print(char(instruction[i]));
 //      Serial.print(instruction[i]);
-    Serial.print("\t\r\n");
-    
+    //Serial.print("\t\r\n");
+    //
   }
   Serial.println("");
 }
