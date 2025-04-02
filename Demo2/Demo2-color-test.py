@@ -18,34 +18,16 @@ with open("cameraMatrix.pkl", "rb") as f:
 with open("dist.pkl", "rb") as f:
     dist = pickle.load(f)
 
-# define the I2C Address of Arduino
-ARD_ADDR = 8  
-
-# Initialise I2C communications for both the LCD screen and the Arduino
-i2cLCD = board.I2C()  # uses board.SCL and board.SDA
-i2cARD = smbus2.SMBus(1)  # Use I2C bus 1 for communication with Arduino
-
-# Initialise the queue where the updated marker quadrants are stored
-lcdQueue = queue.Queue()
-
 # Aruco marker dictionary and detector parameters
 dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50) # using a 6x6 marker
 parameters = cv.aruco.DetectorParameters()
 
 
-# Initialise LCD rows and cols COMMENT IN FOR LCD
-i2cLCD = board.I2C()  # uses board.SCL and board.SDA
 
-LCD_COLUMS = 16
-LCD_ROWS = 2
-lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
 
-# init the camera
+
 cap = cv.VideoCapture(0) 
-currentAngle = None
-lastAngle = None
-currentDistance = None
-lastDistance= None
+
 currentColor = None
 lastColor= None
 lcdPrompt = []
@@ -53,57 +35,7 @@ lcdPrompt = []
 last_update_time = time()
 
 
-def updateLCD():
-    print("Started LCD Thread")
 
-    #*********
-    # LCD Init
-    #*********
-    
-    # Initialise the LCD 
-    lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
-    lcd.clear()
-    lcd.color = [10, 0, 0]  # Set initial color (red)
-    print("LCD init done")
-
-    #***********************************************
-    # Update the LCD and send data only if necessary
-    #***********************************************
-    while True:
-        if not lcdQueue.empty():
-            message = lcdQueue.get()
-##            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, message)
-            message = str(message)
-            lcd.clear() 
-##            lcd.message = str(message)
-            lcd.message = message
-            # Send the wheelLocation data to the Arduino using smbus2
-            command = [ord(character) for character in message]
-            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
-
-    
-def get_angle(cnrs):
-    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
-        
-    for i in range(len(ids)):
-        rvec = rvecs[i][0]
-        tvec = tvecs[i][0]
-        
-        # Compute rotation matrix
-        R, _ = cv.Rodrigues(rvec)
-        
-        # Angle between camera axis and marker
-        angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
-        angle = round(angle, 1) # round the angle to 2 decimal points. 
-    return angle
-
-def get_distance(cnrs):
-    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
-    for i in range(len(ids)):
-        rvec = rvecs[i][0]
-        tvec = tvecs[i][0]
-        distance = round(tvec[2]*3.28,1)  # Convert meters to feet
-    return distance
 
 def get_color(cnrs):
     for i in range(len(ids)):
@@ -151,9 +83,6 @@ def get_color(cnrs):
     return color
 
 
-# Start the LCD update thread
-myThread = threading.Thread(target=updateLCD, daemon=True)
-myThread.start()
 
 # Repeat until user hits 'q'
 while True: 
@@ -171,36 +100,10 @@ while True:
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
 
     if ids is not None:
-        currAngle = get_angle(corners) # find the angle
-        currDistance = get_distance(corners) # find the distance
-
-        # Check the distance ( > 1 or <= 1)
-        if currDistance <= 1:  # If the distance is <= 1 foot (3.28 meters)
-            currColor = get_color(corners)
-            currDistance = 0
-            if currColor == "Green":
-                currAngle = 90
-            elif currColor == "Red":
-                currAngle = -90
-        else:
-            currColor = None
-            
-
-        # Update LCD only when necessary (based on the angle, distance, or color change)
-        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance or currColor != lastColor):
-            if currAngle != lastAngle:
-                lastAngle = currAngle # update the angle
-            if currDistance != lastDistance:
-                lastDistance = currDistance # update the distance
-            if currColor != lastColor:
-                lastColor = currColor # update the color
-            lcdPrompt = [currDistance, currAngle]
-            lcdQueue.put(lcdPrompt)
-            last_update_time = time()    
-
+        currColor = get_color(corners)
+        print(currColor)
+        
     else:
-        currAngle = None
-        currDistance = None
         currColor = None
 
     # Show the frame
