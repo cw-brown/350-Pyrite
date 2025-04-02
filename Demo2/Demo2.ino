@@ -7,10 +7,12 @@
 volatile uint8_t reg;
 #define MSG_SIZE 8  // 2 floats * 4 bytes each
 volatile uint8_t msgLength = 0;
-uint8_t msg[12];  // Buffer to hold received bytes
+uint8_t msg[12];  // Buffer to hold received bytes  // new
 // recieved data from camera
 float markerPhi;  // new
 float markerRho;  // new
+bool f_detected = false;  // Flag for object detection  // new
+bool f_movefwd = false;   // Initially false, the robot turns until it detects a marker   // new
 
 // Pin Definitions
 const uint8_t M_ENABLE = 4; // So motors are on
@@ -60,7 +62,7 @@ const float b = 1.425; // Wheelbase in feet
 float t=0.0, x = 0.0, y = 0.0;
 
 // angle stuff
-float desiredPhi = -45 * (-PI/180); // convert deg rad (only change # before the * sign)
+float desiredPhi = 0 * (-PI/180); // convert deg rad (only change # before the * sign)
 float phi = 0;
 float desiredPhiVel = 0;
 float errorPhi = 0;
@@ -75,7 +77,7 @@ float errorPhiVel = 0;
 float KpPhiVel = 2;
 
 // distance stuff
-float desiredRho = 4.2426; // in feet
+float desiredRho = 0; // in feet
 float prevDesiredRho = 0; // in feet
 float rho = 0;
 float desiredRhoVel = 0;
@@ -138,12 +140,29 @@ void loop() {
     memcpy(values, msg, MSG_SIZE);  // Convert bytes into float array
 
     // Extract values
-    float distance = values[0];
-    float angle = values[1];
+    markerRho = values[0];
+    markerPhi = values[1];
 
     // Debugging output
-    Serial.print("Distance: "); Serial.println(distance);
-    Serial.print("Angle: "); Serial.println(angle);
+    Serial.print("Distance: "); Serial.println(markerRho);
+    Serial.print("Angle: "); Serial.println(markerPhi);
+
+    // Logic for setting flags
+    if (markerRho == 9.9f && markerPhi == 99.9f) {
+      f_detected = false;  // No marker detected
+      f_movefwd = false;   // Keep turning
+    } else {
+      f_detected = true;   // Marker detected
+      if (abs(markerPhi)* < 0.5) {  // If marker is roughly straight ahead
+        f_movefwd = true;  // Move forward
+      } else {
+        f_movefwd = false;  // Continue turning with phi controller
+      }
+    }
+
+    // Debugging output for flags
+    Serial.print("f_detected: "); Serial.println(f_detected);
+    Serial.print("f_movefwd: "); Serial.println(f_movefwd);
 
     // Reset for next message
     msgLength = 0;
@@ -210,6 +229,7 @@ void loop() {
       break;
 
     case ROTATE:  // Align to desiredPhi
+      desiredPhi = markerPhi;
       desiredRho = 0;
       desiredRhoVel = 0;
       if (phi <= desiredPhi + PI/360 && phi >= desiredPhi - PI/360) { // if robot is oriented toward marker within .5 degrees
@@ -232,7 +252,7 @@ void loop() {
       break;
     
     case MOVE_FWD:  // Move forward to desiredRho
-      desiredRho = prevDesiredRho; // arbitrary
+      desiredRho = markerRho-1;
       //desiredPhi = 0;
       if (abs(rho) == abs(desiredRho)) {
         prevMode = MOVE_FWD;
@@ -246,13 +266,10 @@ void loop() {
       desiredRhoVel = 0; 
       desiredPhi = 0;
       desiredRho = 0;
-      if (prevMode == SEEK && (currentTime - pause >= 2.5)) {  // [go to scan case when done waiting for camera
+      if (prevMode == SEEK && (currentTime - pause >= 2.5)) {  // go to seek case when done waiting for camera
         prevMode = WAIT;
         mode = SEEK;
         pause = currentTime;
-      }
-      if (f_turn){
-
       }
 
       //essentially STOP case
