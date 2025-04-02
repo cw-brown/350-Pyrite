@@ -6,6 +6,7 @@ import adafruit_character_lcd.character_lcd_rgb_i2c as character_lcd
 import threading
 import queue
 import board
+import smbus2
 
 
 ''' 
@@ -16,6 +17,13 @@ with open("cameraMatrix.pkl", "rb") as f:
     cameraMatrix = pickle.load(f)
 with open("dist.pkl", "rb") as f:
     dist = pickle.load(f)
+
+# define the I2C Address of Arduino
+ARD_ADDR = 8  
+
+# Initialise I2C communications for both the LCD screen and the Arduino
+i2cLCD = board.I2C()  # uses board.SCL and board.SDA
+i2cARD = smbus2.SMBus(1)  # Use I2C bus 1 for communication with Arduino
 
 # Initialise the queue where the updated marker quadrants are stored
 lcdQueue = queue.Queue()
@@ -63,9 +71,15 @@ def updateLCD():
     #***********************************************
     while True:
         if not lcdQueue.empty():
-            angle = lcdQueue.get()
+            message = lcdQueue.get()
+##            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, message)
+            message = str(message)
             lcd.clear() 
-            lcd.message = str(angle)
+##            lcd.message = str(message)
+            lcd.message = message
+            # Send the wheelLocation data to the Arduino using smbus2
+            command = [ord(character) for character in message]
+            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
 
     
 def get_angle(cnrs):
@@ -181,7 +195,7 @@ while True:
             if currColor != lastColor:
                 lastColor = currColor # update the color
             lcdPrompt = [currDistance, currAngle]
-            lcdQueue.put(f"{lcdPrompt}")
+            lcdQueue.put(lcdPrompt)
             last_update_time = time()    
 
     else:
