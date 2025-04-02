@@ -153,7 +153,7 @@ void loop() {
       f_movefwd = false;   // Keep turning
     } else {
       f_detected = true;   // Marker detected
-      if (abs(markerPhi)* < 0.5) {  // If marker is roughly straight ahead
+      if (abs(markerPhi) < 0.5) {  // If marker is roughly straight ahead
         f_movefwd = true;  // Move forward
       } else {
         f_movefwd = false;  // Continue turning with phi controller
