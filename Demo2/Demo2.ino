@@ -261,7 +261,7 @@ void loop() {
       break;
 
     case WAIT:  // Wait for camera or wait indefinitely (stop)
-      Serial.print("wait . . .");
+      //Serial.print("wait . . .");
       desiredPhiVel = 0;
       desiredRhoVel = 0; 
       desiredPhi = 0;
@@ -309,20 +309,20 @@ void loop() {
   rhoVel = (r/2)*(vel[0]+vel[1]);
   errorRhoVel = desiredRhoVel - rhoVel;
 
-  // print/debugging statements
-  Serial.print(mode);
-  Serial.print("\t");
-  Serial.print(rho);
-  Serial.print("\t");
-  Serial.print(desiredRho);
-  Serial.print("\t");
-  Serial.print(phi);
-  Serial.print("\t");
-  Serial.print(desiredPhi);
-  Serial.print("\t");
-  Serial.print(voltage[0]);
-  Serial.print("\t");
-  Serial.println(voltage[1]);
+  // // print/debugging statements
+  // Serial.print(mode);
+  // Serial.print("\t");
+  // Serial.print(rho);
+  // Serial.print("\t");
+  // Serial.print(desiredRho);
+  // Serial.print("\t");
+  // Serial.print(phi);
+  // Serial.print("\t");
+  // Serial.print(desiredPhi);
+  // Serial.print("\t");
+  // Serial.print(voltage[0]);
+  // Serial.print("\t");
+  // Serial.println(voltage[1]);
 
   // voltage calculations and setting
   Vbar = errorRhoVel*KpRhoVel;
