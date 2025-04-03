@@ -1,7 +1,8 @@
 #include <Wire.h>
 
 const int slaveAddress = 8;  // I2C address of the slave device
-float vector[2];  // 2-element vector to receive
+float vector[2];  // 2-element vector to store received floats
+byte extraByte;   // Extra byte (9th byte) that we will ignore
 
 void setup() {
   Serial.begin(9600);
@@ -11,16 +12,20 @@ void setup() {
 }
 
 void loop() {
-  // Nothing needed here, since communication is handled by interrupt function
+  // Nothing needed here, as we handle the data in the receive event
 }
 
 // Function to receive data from the master
 void receiveEvent(int bytes) {
   Serial.print("Bytes received: ");
   Serial.println(bytes);
-  
-  if (bytes == sizeof(vector)) {
-    // Read 8 bytes and convert them to float values
+
+  // Ensure we have at least 9 bytes, where we ignore the first byte
+  if (bytes >= 9) {
+    // Read and ignore the first byte (offset byte)
+    Wire.read();  // Discard the first byte
+
+    // Read 8 bytes into the vector (first 2 floats)
     byte* data = (byte*) &vector;
     for (int i = 0; i < sizeof(vector); i++) {
       data[i] = Wire.read();  // Store bytes into vector
@@ -32,6 +37,7 @@ void receiveEvent(int bytes) {
     Serial.print(", ");
     Serial.println(vector[1], 2);  // Print second float with 2 decimal places
   } else {
-    Serial.println("Unexpected number of bytes received.");
+    // If less than 9 bytes, report an error
+    Serial.println("Error: Unexpected number of bytes received.");
   }
 }
