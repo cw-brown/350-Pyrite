@@ -6,6 +6,7 @@ import adafruit_character_lcd.character_lcd_rgb_i2c as character_lcd
 import threading
 import queue
 import board
+import smbus2
 
 
 ''' 
@@ -16,6 +17,13 @@ with open("cameraMatrix.pkl", "rb") as f:
     cameraMatrix = pickle.load(f)
 with open("dist.pkl", "rb") as f:
     dist = pickle.load(f)
+
+# define the I2C Address of Arduino
+ARD_ADDR = 8  
+
+# Initialise I2C communications for both the LCD screen and the Arduino
+i2cLCD = board.I2C()  # uses board.SCL and board.SDA
+i2cARD = smbus2.SMBus(1)  # Use I2C bus 1 for communication with Arduino
 
 # Initialise the queue where the updated marker quadrants are stored
 lcdQueue = queue.Queue()
@@ -63,10 +71,18 @@ def updateLCD():
     #***********************************************
     while True:
         if not lcdQueue.empty():
-            angle = lcdQueue.get()
+            message = lcdQueue.get()
+##            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, message)
+            message = str(message)
             lcd.clear() 
-            lcd.message = str(angle)
-
+##            lcd.message = str(message)
+            lcd.message = message
+            # Send the wheelLocation data to the Arduino using smbus2
+            command = [ord(character) for character in message]
+            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
+##        else:
+##            command = str([99.9,99.9])
+##            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
     
 def get_angle(cnrs):
     rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
@@ -80,7 +96,7 @@ def get_angle(cnrs):
         
         # Angle between camera axis and marker
         angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
-        angle = round(angle, 1) # round the angle to 2 decimal points. 
+        angle = float(round(angle, 1)) # round the angle to 2 decimal points. 
     return angle
 
 def get_distance(cnrs):
@@ -88,11 +104,12 @@ def get_distance(cnrs):
     for i in range(len(ids)):
         rvec = rvecs[i][0]
         tvec = tvecs[i][0]
-        distance = round(tvec[2]*3.28,1)  # Convert meters to feet
+        distance = float(round(tvec[2]*3.28,1))  # Convert meters to feet
     return distance
 
 def get_color(cnrs):
     for i in range(len(ids)):
+        color = None
         # Get the coordinates of the marker corners
         marker_corners = cnrs[i][0]
         x_min, y_min = np.min(marker_corners, axis=0).astype(int)
@@ -163,11 +180,11 @@ while True:
         # Check the distance ( > 1 or <= 1)
         if currDistance <= 1:  # If the distance is <= 1 foot (3.28 meters)
             currColor = get_color(corners)
-            currDistance = 0
+            currDistance = 0.0
             if currColor == "Green":
-                currAngle = 90
+                currAngle = 90.0
             elif currColor == "Red":
-                currAngle = -90
+                currAngle = -90.0
         else:
             currColor = None
             
@@ -181,7 +198,13 @@ while True:
             if currColor != lastColor:
                 lastColor = currColor # update the color
             lcdPrompt = [currDistance, currAngle]
-            lcdQueue.put(f"{lcdPrompt}")
+##            chunk_size = 32
+##            for i in range(0,len(byte_data),chunk_size):
+##                chunk = lcdPrompt[i:i+chunk_size]
+##                i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, list(chunk))
+##                time.sleep(0.1)
+##            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, lcdPrompt) # send the data to ard as an array of floats
+            lcdQueue.put(lcdPrompt)
             last_update_time = time()    
 
     else:
