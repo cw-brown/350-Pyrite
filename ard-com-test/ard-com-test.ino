@@ -5,7 +5,7 @@ float vector[2];  // 2-element vector to store received floats
 byte extraByte;   // Extra byte (9th byte) that we will ignore
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Wire.begin(slaveAddress);  // Start I2C as slave with the given address
   Wire.onReceive(receiveEvent);  // Function to call when master sends data
   Serial.println("Arduino is ready to receive data...");

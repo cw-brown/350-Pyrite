@@ -1,6 +1,7 @@
 import smbus
 import time
 import struct  # For packing floats into binary format
+import cv2 as cv
 
 # I2C bus number (on Raspberry Pi, typically 1)
 bus = smbus.SMBus(1)
@@ -16,11 +17,15 @@ def write_vector(vector):
     bus.write_i2c_block_data(slave_address, 0, list(data))
 
 # Example usage
+i = 0
 try:
-    # Send a 2-element vector (floats) to the Arduino
-    vector_to_send = [12.3, 45.67]  # Example floats
-    write_vector(vector_to_send)
-    print(f"Sent vector: {vector_to_send}")
+    while True:
+        i = i+1.2
+        # Send a 2-element vector (floats) to the Arduino
+        vector_to_send = [12.3 + i, 45.67+i]  # Example floats
+        write_vector(vector_to_send)
+        print(f"Sent vector: {vector_to_send}")
+        time.sleep(1)
 
-except Exception as e:
-    print(f"Error: {e}")
+except KeyboardInterrupt:
+    print(f"Quit")
