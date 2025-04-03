@@ -10,26 +10,29 @@ union FloatPair {
 FloatPair receivedData;
 
 void receiveData(int byteCount) {
+    Serial.println("Data received");
     if (byteCount == 8) {  // Ensure we get exactly 8 bytes
         for (int i = 0; i < 8; i++) {
             receivedData.bytes[i] = Wire.read();
         }
 
-        // Print only when a full message is received
+        // Print the received floats
         Serial.print("Received floats: ");
         Serial.print(receivedData.values[0]);
         Serial.print(", ");
         Serial.println(receivedData.values[1]);
-    } 
-    // Remove extra prints or error messages if unnecessary
+    } else {
+        Serial.println("Error: Incomplete data received");
+    }
 }
 
 void setup() {
     Serial.begin(115200);
     Wire.begin(I2C_ADDR);
     Wire.onReceive(receiveData);
+    Serial.println("Ready to receive data");
 }
 
 void loop() {
-    // No need for delay, only reacts when data is received
+    // Nothing needed in the loop for now
 }
