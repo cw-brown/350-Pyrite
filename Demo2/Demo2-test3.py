@@ -12,7 +12,7 @@ import smbus2
 ''' 
 '''
 
-# Load camera calibration information
+# Camera Calibration and Distortion Matricies
 with open("cameraMatrix.pkl", "rb") as f:
     cameraMatrix = pickle.load(f)
 with open("dist.pkl", "rb") as f:
@@ -21,11 +21,11 @@ with open("dist.pkl", "rb") as f:
 # define the I2C Address of Arduino
 ARD_ADDR = 8  
 
-# Initialise I2C communications for both the LCD screen and the Arduino
+# I2C declarations for ard and lcd
 i2cLCD = board.I2C()  # uses board.SCL and board.SDA
 i2cARD = smbus2.SMBus(1)  # Use I2C bus 1 for communication with Arduino
 
-# Initialise the queue where the updated marker quadrants are stored
+# Initialise the queue where a distance and vector is stored
 lcdQueue = queue.Queue()
 
 # Aruco marker dictionary and detector parameters
@@ -41,7 +41,9 @@ LCD_ROWS = 2
 lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
 
 # init the camera
-cap = cv.VideoCapture(0) 
+cap = cv.VideoCapture(0)
+
+# Angle, distance and color holders
 currentAngle = None
 lastAngle = None
 currentDistance = None
@@ -50,40 +52,35 @@ currentColor = None
 lastColor= None
 lcdPrompt = []
 
+# Implement time based sending to minimize any lag
 last_update_time = time()
 
-
+# LCD thread to minimize delay in the system
 def updateLCD():
-    print("Started LCD Thread")
-
-    #*********
+##    print("Started LCD Thread")
     # LCD Init
-    #*********
-    
-    # Initialise the LCD 
     lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
     lcd.clear()
     lcd.color = [10, 0, 0]  # Set initial color (red)
-    print("LCD init done")
+##    print("LCD init done")
 
-    #***********************************************
-    # Update the LCD and send data only if necessary
-    #***********************************************
+    # Update the LCD only when necessary
     while True:
         if not lcdQueue.empty():
             message = lcdQueue.get()
         else:
             message = [9.9,99.9]
-    ##            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, message)
+##        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, message)
         message = str(message)
         lcd.clear() 
-    ##            lcd.message = str(message)
+        lcd.message = str(message)
         lcd.message = message
         # Send the wheelLocation data to the Arduino using smbus2
         command = [ord(character) for character in message]
         i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
 
-        
+
+# find the angle off the center axis of rotation        
 def get_angle(cnrs):
     rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
         
@@ -99,6 +96,7 @@ def get_angle(cnrs):
         angle = float(round(angle, 1)) # round the angle to 2 decimal points. 
     return angle
 
+# find the distance to the marker
 def get_distance(cnrs):
     rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
     for i in range(len(ids)):
@@ -107,6 +105,7 @@ def get_distance(cnrs):
         distance = float(round(tvec[2]*3.28,1))  # Convert meters to feet
     return distance
 
+# find the color on the marker
 def get_color(cnrs, frame, ids):
     for i in range(len(ids)):
         color = None
@@ -162,8 +161,10 @@ def get_color(cnrs, frame, ids):
 myThread = threading.Thread(target=updateLCD, daemon=True)
 myThread.start()
 
-# Repeat until user hits 'q'
-while True: 
+# Run until the user types 'q' to quit
+while True:
+    
+    # Capture the frame
     ret, frame = cap.read()
     if not ret:
         continue
@@ -202,11 +203,6 @@ while True:
             if currColor != lastColor:
                 lastColor = currColor # update the color
             lcdPrompt = [currDistance, currAngle]
-##            chunk_size = 32
-##            for i in range(0,len(byte_data),chunk_size):
-##                chunk = lcdPrompt[i:i+chunk_size]
-##                i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, list(chunk))
-##                time.sleep(0.1)
 ##            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, lcdPrompt) # send the data to ard as an array of floats
             lcdQueue.put(lcdPrompt)
             last_update_time = time()    
@@ -216,13 +212,14 @@ while True:
         currDistance = None
         currColor = None
 
-    # Show the frame
-    cv.imshow("Aruco Detection", frame)
+    # Show the (grey) frame
+    cv.imshow("Aruco Detection", gray)
     
-    # Exit on key press
+    # Quit when the user hits 'q'
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
 
+# Release all resources (camera, LCD, windows)
 cap.release()
 cv.destroyAllWindows()
 lcd.clear()
