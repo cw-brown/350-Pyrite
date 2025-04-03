@@ -153,9 +153,10 @@ def get_color(cnrs, frame, ids):
 
         # Check if any pixels are detected for red or green color in the right or left regions
         if red_mask_right is not None and np.count_nonzero(red_mask_right) > 0:
-            color = -90.0 #Red     
+            color = -90.0 #Red
         elif green_mask_left is not None and np.count_nonzero(green_mask_left) > 0:
-            color = 90.0 # Green
+            color = 90.0 #Green
+    
     return color
 
 # Start the LCD update thread
@@ -195,10 +196,10 @@ while True:
     
         message = [currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
          # Convert the floats into a byte array (4 bytes each)
-        data = struct.pack('ff', message[0], message[1])
-        
-        # Send the packed float data (8 bytes total)
-        i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
+##        data = struct.pack('ff', message[0], message[1])
+##        
+##        # Send the packed float data (8 bytes total)
+##        i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
 ##        message = str(message) # turn it into a string
 ##        command = [ord(character) for character in message]
 ##        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
@@ -218,7 +219,7 @@ while True:
             last_update_time = time()    
 
     else:
-        currAngle = 9.9
+        currAngle = 99.9
         currDistance = 99.9
         if currDistance != lastDistance or currAngle != lastAngle:
             lastAngle = currAngle
@@ -230,10 +231,10 @@ while True:
         currColor = 1 # place holder value
         message = [currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
          # Convert the floats into a byte array (4 bytes each)
-        data = struct.pack('ff', message[0], message[1])
+    data = struct.pack('ff', message[0], message[1])
         
         # Send the packed float data (8 bytes total)
-        i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
+    i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
     # Show the (gray) frame
     cv.imshow("Aruco Detection", gray)
     
