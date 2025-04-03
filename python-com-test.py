@@ -22,7 +22,7 @@ try:
     while True:
         i = i+1.2
         # Send a 2-element vector (floats) to the Arduino
-        vector_to_send = [12.3 + i, 45.67+i]  # Example floats
+        vector_to_send = [2.3 + i, 66.678+i]  # Example floats
         write_vector(vector_to_send)
         print(f"Sent vector: {vector_to_send}")
         time.sleep(1)
