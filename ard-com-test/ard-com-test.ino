@@ -1,6 +1,6 @@
 #include <Wire.h>
 
-#define I2C_ADDR 0x08
+#define I2C_ADDR 0x08  // I2C address of the Arduino
 
 union FloatPair {
     float values[2];  // Two floats stored together
@@ -10,10 +10,9 @@ union FloatPair {
 FloatPair receivedData;
 
 void receiveData(int byteCount) {
-    Serial.println("Data received");
-    if (byteCount == 8) {  // Ensure we get exactly 8 bytes
+    if (byteCount == 8) {  // Ensure we receive exactly 8 bytes (2 floats)
         for (int i = 0; i < 8; i++) {
-            receivedData.bytes[i] = Wire.read();
+            receivedData.bytes[i] = Wire.read();  // Read bytes into union
         }
 
         // Print the received floats
@@ -28,9 +27,8 @@ void receiveData(int byteCount) {
 
 void setup() {
     Serial.begin(115200);
-    Wire.begin(I2C_ADDR);
-    Wire.onReceive(receiveData);
-    Serial.println("Ready to receive data");
+    Wire.begin(I2C_ADDR);  // Initialize I2C with the address
+    Wire.onReceive(receiveData);  // Set the function to be called on data receipt
 }
 
 void loop() {
