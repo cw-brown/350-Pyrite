@@ -6,13 +6,17 @@
 #define MY_ADDR 8  // Arduino I2C address
 volatile uint8_t reg;
 #define MSG_SIZE 8  // 2 floats * 4 bytes each
-volatile uint8_t msgLength = 0;
+//volatile uint8_t msgLength = 0;
 uint8_t msg[12];  // Buffer to hold received bytes  // new
 // recieved data from camera
-float markerPhi;  // new
-float markerRho;  // new
+float markerPhi = 0.0;  // new
+float markerRho = 0.0;  // new
 bool f_detected = false;  // Flag for object detection  // new
-bool f_movefwd = false;   // Initially false, the robot turns until it detects a marker   // new
+// volatile uint8_t instruction[32] = {0}; // new
+const int BUFFER_SIZE = 4; // new
+byte buffer[BUFFER_SIZE]; // new
+bool doTurn = true;
+bool atMarker = false;
 
 // Pin Definitions
 const uint8_t M_ENABLE = 4; // So motors are on
@@ -36,7 +40,6 @@ float ts = 10;  // Sample time in milliseconds
 float initialTime;
 float last_time_ms;
 float timeElapsed;
-float pause = 0;  // allow camera to send // new
 float startTime;  // new
 float lastTime; // new
 float currentTime;  // new
@@ -62,7 +65,7 @@ const float b = 1.425; // Wheelbase in feet
 float t=0.0, x = 0.0, y = 0.0;
 
 // angle stuff
-float desiredPhi = 0 * (-PI/180); // convert deg rad (only change # before the * sign)
+float desiredPhi = 0;
 float phi = 0;
 float desiredPhiVel = 0;
 float errorPhi = 0;
@@ -78,7 +81,6 @@ float KpPhiVel = 2;
 
 // distance stuff
 float desiredRho = 0; // in feet
-float prevDesiredRho = 0; // in feet
 float rho = 0;
 float desiredRhoVel = 0;
 float errorRho = 0;
@@ -92,9 +94,8 @@ float rhoVel = 0;
 float errorRhoVel = 0;
 float KpRhoVel = .8;
 
-enum Mode {SEEK, MOVE_FWD, ROTATE, WAIT};  // Define the states // new
+enum Mode {SEEK, MOVE_FWD, ROTATE, STOP};  // Define the states // new
 Mode mode = SEEK;  // Initialize to a mode
-Mode prevMode = SEEK; // new
 
 void setup() {
   Serial.begin(115200);
@@ -129,45 +130,9 @@ void setup() {
 
   startTime = millis();
   initialTime = millis();
-
-  prevDesiredRho = desiredRho;
 }
 
 void loop() {
-  // If there is data, read it
-  if (msgLength == MSG_SIZE) {  // Ensure we received the expected 8 bytes
-    float values[2]; 
-    memcpy(values, msg, MSG_SIZE);  // Convert bytes into float array
-
-    // Extract values
-    markerRho = values[0];
-    markerPhi = values[1];
-
-    // Debugging output
-    Serial.print("Distance: "); Serial.println(markerRho);
-    Serial.print("Angle: "); Serial.println(markerPhi);
-
-    // Logic for setting flags
-    if (markerRho == 9.9f && markerPhi == 99.9f) {
-      f_detected = false;  // No marker detected
-      f_movefwd = false;   // Keep turning
-    } else {
-      f_detected = true;   // Marker detected
-      if (abs(markerPhi) < 0.5) {  // If marker is roughly straight ahead
-        f_movefwd = true;  // Move forward
-      } else {
-        f_movefwd = false;  // Continue turning with phi controller
-      }
-    }
-
-    // Debugging output for flags
-    Serial.print("f_detected: "); Serial.println(f_detected);
-    Serial.print("f_movefwd: "); Serial.println(f_movefwd);
-
-    // Reset for next message
-    msgLength = 0;
-  }
-
   // time-keeping
   lastTime = millis(); //Compute current time
   currentTime = (float)(millis()-startTime)/1000;
@@ -188,98 +153,85 @@ void loop() {
   // fsm for what the robot should do
   switch (mode) {
     case SEEK:  // turn until finding marker
-      desiredRhoVel = 0;
-      //desiredPhiVel = 7.5;
-
-      if (currentTime - pause < 0.5 && f_detected != true) {         // allow camera time to and send by going to wait case
-        desiredPhiVel = -10;
-        desiredRhoVel = 0;
-      } else {
-        pause = currentTime;       //keep track of pause time
-        prevMode = mode;
-        phi = 0;
-        rho = 0;
-        errorRho = 0;
-        errorPhi = 0;
-        errorPhiVel = 0;
-        errorRhoVel = 0;
-        desiredPhi = 0;
-        desiredRho = 0;
-        curEncCount[0] = 0;
-        curEncCount[1] = 0;
-        mode = WAIT;
+      if (!f_detected) {
+        desiredPhi += 0.5 * PI / 180;
+        //Serial.println("Searching");
       }
-      if (f_detected == true) {     // camera sends data
-        Serial.print("Marker Found");
-        phi = 0;
-        rho = 0;
-        errorRho = 0;
-        errorPhi = 0;
-        errorPhiVel = 0;
-        errorRhoVel = 0;
-        desiredPhi = 0;
-        desiredRho = 0;
-        curEncCount[0] = 0;
-        curEncCount[1] = 0;
-        prevMode = SEEK;
+      else if (f_detected) {
+        Serial.println("Marker Found");
+        analogWrite(M_PWM[0], 0);
+        analogWrite(M_PWM[1], 0);
+        delay(500);
+        desiredPhi = phi + markerPhi * (PI / 180);
         mode = ROTATE;
-        desiredPhi = markerPhi;       //turn towards marker
-        delay(1500);
       }
       break;
 
     case ROTATE:  // Align to desiredPhi
-      desiredPhi = markerPhi;
-      desiredRho = 0;
-      desiredRhoVel = 0;
-      if (phi <= desiredPhi + PI/360 && phi >= desiredPhi - PI/360) { // if robot is oriented toward marker within .5 degrees
-      // Serial.print("desiredPhi Reached"); // debugging
-        if (prevMode == SEEK || f_movefwd == true) {  // go into straight case 
-          phi = 0;
-          rho = 0;
-          errorRho = 0;
-          errorPhi = 0;
-          errorPhiVel = 0;
-          errorRhoVel = 0;
-          desiredPhi = 0;
-          desiredRho = 0;   //void junk values
-          desiredRhoVel = 0; 
-          prevMode = ROTATE;
-          mode = MOVE_FWD; // transistion to moving straight forward
-          desiredRho = markerRho - 1;  //stop 1 ft away from marker
+      desiredRhoVel = 0; // we want to be stationary around axle center axis
+      desiredRho = rho;
+      //Serial.println("Turning");
+
+      // Check if we are within desired bounds
+      if (fabs(phi - desiredPhi) <= PI/180) {
+        analogWrite(M_PWM[0], 0);
+        analogWrite(M_PWM[1], 0);
+        delay(1000);
+        desiredPhi = phi;
+        desiredRho = rho + markerRho;
+        if (atMarker == true) {
+          atMarker = false;
+          mode = STOP;
+        }
+        else {
+          mode = MOVE_FWD;
         }
       }
       break;
+      break;
     
     case MOVE_FWD:  // Move forward to desiredRho
-      desiredRho = markerRho-1;
-      //desiredPhi = 0;
-      if (abs(rho) == abs(desiredRho)) {
-        prevMode = MOVE_FWD;
-        mode = WAIT;
+      //Serial.println("Move Fwd");
+      if ((rho - desiredRho) <= 1.0 && (rho - desiredRho) >= 0.0) {
+        atMarker = true;
+        mode = STOP;
       }
       break;
 
-    case WAIT:  // Wait for camera or wait indefinitely (stop)
-      //Serial.print("wait . . .");
-      desiredPhiVel = 0;
-      desiredRhoVel = 0; 
-      desiredPhi = 0;
-      desiredRho = 0;
-      if (prevMode == SEEK && (currentTime - pause >= 2.5)) {  // go to seek case when done waiting for camera
-        prevMode = WAIT;
-        mode = SEEK;
-        pause = currentTime;
-      }
-
-      //essentially STOP case
+    case STOP:  // Wait for camera or wait indefinitely (stop)
       analogWrite(M_PWM[0], 0);
       analogWrite(M_PWM[1], 0);
+      KdPhi = 45;
+      if (atMarker == true && doTurn == true) {
+        if (markerPhi == -90) { // left
+          Serial.println("Left turn");
+          delay(2000);
+          desiredPhi = phi + (PI / 2);
+          mode = ROTATE;
+        }
+        else if (markerPhi == 90) { // right
+          Serial.println("Right turn");
+          delay(2000);
+          desiredPhi = phi - (PI / 2);
+          mode = ROTATE;
+        }
+        else { // no turn comand from pi
+          //Serial.println("Pause");
+          analogWrite(M_PWM[0], 0);
+          analogWrite(M_PWM[1], 0);
+          break;
+        }
+      }
+      else {
+        Serial.println("Stop");
+        analogWrite(M_PWM[0], 0);
+        analogWrite(M_PWM[1], 0);
+      }
       break;
   }
 
   // control
-  if(mode == ROTATE || mode == MOVE_FWD) {
+  if(mode == ROTATE || mode == MOVE_FWD || mode == SEEK) {
     // PID control for angle
     errorPhi = desiredPhi - phi;
     derivativePhi = (errorPhi - errorPhiInitial)/((float)(ts/1000));
@@ -309,7 +261,7 @@ void loop() {
   rhoVel = (r/2)*(vel[0]+vel[1]);
   errorRhoVel = desiredRhoVel - rhoVel;
 
-  // // print/debugging statements
+  // print/debugging statements
   // Serial.print(mode);
   // Serial.print("\t");
   // Serial.print(rho);
@@ -329,7 +281,7 @@ void loop() {
   deltaV = errorPhiVel*KpPhiVel;
   voltage[0] = (Vbar+deltaV)/2;
   voltage[1] = (Vbar-deltaV)/2;
-  if(mode!=WAIT){
+  if(mode!=STOP){
     for (int i = 0; i < 2; i++) {
       if(voltage[i] > 0){
         digitalWrite(M_DIR[i], HIGH);
@@ -363,7 +315,50 @@ void loop() {
 // I2C interrupt for recieving data from Rasberry Pi (not used in demo 1)
 void receiveData (){
   while (Wire.available()) {
-    msg[msgLength] = Wire.read();
+    Wire.read(); // discard first byte (offset)
+    // // need to read four bytes and convert into float
+    // for (int i = 0; i < BUFFER_SIZE; i++) {
+    //     buffer[i] = Wire.read();
+    // }
+    // memcpy(&markerRho, buffer, sizeof(markerRho));
+
+    // for (int i = 0; i < BUFFER_SIZE; i++) {
+    //     buffer[i] = Wire.read();
+    // }
+    // memcpy(&markerPhi, buffer, sizeof(markerPhi));
+    while (Wire.available()) {
+    instruction[msgLength] = Wire.read();
+//    instruction = Wire.read();
     msgLength++;
+  }
+
+  for (int i=0;i<msgLength;i++) {
+//    Serial.print("     ");
+    Serial.print(char(instruction[i]));
+//      Serial.print(instruction[i]);
+    //Serial.print("\t\r\n");
+    //
+  }
+  Serial.println("");
+
+    String message = String((char*)msg);
+    Serial.print("Message: "); Serial.println(message);
+    String distanceStr = message.substring(0, 3); // First 3 characters (x.x)
+    // Extract the angle (phi) from the remaining part of the string
+    String angleStr = message.substring(3); // Rest of the string (xx.x)
+
+    // Convert the strings to floats
+    markerRho = distanceStr.toFloat();
+    markerPhi = angleStr.toFloat();
+
+    // Debugging output
+    Serial.print("Distance: "); Serial.println(markerRho);
+    Serial.print("Angle: "); Serial.println(markerPhi);
+
+    if (markerRho == 9.9f && markerPhi == 99.9f) {
+      f_detected = false;  // No marker detected
+    } else {
+      f_detected = true;   // Marker detected
+    }
   }
 }
