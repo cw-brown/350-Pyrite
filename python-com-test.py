@@ -1,16 +1,26 @@
 import smbus
-import struct
 import time
+import struct  # For packing floats into binary format
 
-I2C_ADDR = 0x08  # Arduino's I2C address
-bus = smbus.SMBus(1)  # Use I2C bus 1
+# I2C bus number (on Raspberry Pi, typically 1)
+bus = smbus.SMBus(1)
 
-def send_floats(floats):
-    data = struct.pack('ff', *floats)  # Pack two floats into bytes
-    byte_list = list(data)  # Convert bytes to list of integers
-    bus.write_i2c_block_data(I2C_ADDR, 0, byte_list)  # Send data
+# Arduino slave address
+slave_address = 0x08
 
-while True:
-    send_floats([3.14, 2.71])  # Example data
-    print("sent")
-    time.sleep(1)
+def write_vector(vector):
+    # Convert the floats into a byte array (4 bytes each)
+    data = struct.pack('ff', vector[0], vector[1])
+    
+    # Send the packed float data (8 bytes total)
+    bus.write_i2c_block_data(slave_address, 0, list(data))
+
+# Example usage
+try:
+    # Send a 2-element vector (floats) to the Arduino
+    vector_to_send = [12.3, 45.67]  # Example floats
+    write_vector(vector_to_send)
+    print(f"Sent vector: {vector_to_send}")
+
+except Exception as e:
+    print(f"Error: {e}")
