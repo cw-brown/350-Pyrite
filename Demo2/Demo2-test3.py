@@ -11,13 +11,6 @@ import smbus2
 
 ''' 
 '''
-
-# Camera Calibration and Distortion Matricies
-with open("cameraMatrix.pkl", "rb") as f:
-    cameraMatrix = pickle.load(f)
-with open("dist.pkl", "rb") as f:
-    dist = pickle.load(f)
-
 # define the I2C Address of Arduino
 ARD_ADDR = 8  
 
@@ -27,6 +20,14 @@ i2cARD = smbus2.SMBus(1)  # Use I2C bus 1 for communication with Arduino
 
 # Initialise the queue where a distance and vector is stored
 lcdQueue = queue.Queue()
+
+# Camera Calibration and Distortion Matricies
+with open("cameraMatrix.pkl", "rb") as f:
+    cameraMatrix = pickle.load(f)
+with open("dist.pkl", "rb") as f:
+    dist = pickle.load(f)
+
+
 
 # Aruco marker dictionary and detector parameters
 dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50) # using a 6x6 marker
@@ -43,7 +44,7 @@ lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
 # init the camera
 cap = cv.VideoCapture(0)
 
-# Angle, distance and color holders
+# Angle, distance and color place holders
 currentAngle = None
 lastAngle = None
 currentDistance = None
@@ -76,14 +77,13 @@ def updateLCD():
         # To send a string
         message = str(message)
         lcd.clear() 
-        lcd.message = str(message)
         lcd.message = message
         # Send the wheelLocation data to the Arduino using smbus2
         command = [ord(character) for character in message]
         i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
 
 
-# find the angle off the center axis of rotation        
+# find the angle off the center axis of rotation. return an angle to 1 decimal point of accuracy      
 def get_angle(cnrs):
     rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
         
@@ -99,7 +99,7 @@ def get_angle(cnrs):
         angle = float(round(angle, 1)) # round the angle to 2 decimal points. 
     return angle
 
-# find the distance to the marker
+# find the distance to the marker retrun a distance of 1 decimal point of accuracy
 def get_distance(cnrs):
     rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
     for i in range(len(ids)):
@@ -181,12 +181,15 @@ while True:
     # Detect Aruco markers
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
 
+    currDistance = 9.9
+    currAngle = 99.9
     if ids is not None:
         currAngle = get_angle(corners) # find the angle
         currDistance = get_distance(corners) # find the distance
 
         # Check the distance ( > 1 or <= 1)
-        if currDistance <= 1:  # If the distance is <= 1 foot (3.28 meters)
+        # If the distance is <= 1 foot (3.28 meters) ONLY detect color
+        if currDistance <= 1:  
             currColor = get_color(corners,frame,ids)
             currDistance = 0.0
             if currColor == "Green":
@@ -195,10 +198,18 @@ while True:
                 currAngle = -90.0
         else:
             currColor = None
+    
             
+        message = [currDistance, currAngle]
+        message = str(message)
+        command = [ord(character) for character in message]
+        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
+##        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, message) # send the data to ard as an array of floats
+   
 
         # Update LCD only when necessary (based on the angle, distance, or color change)
-        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance or currColor != lastColor):
+##        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance or currColor != lastColor):
+        if time() - last_update_time >= 1:
             if currAngle != lastAngle:
                 lastAngle = currAngle # update the angle
             if currDistance != lastDistance:
@@ -215,7 +226,7 @@ while True:
         currDistance = None
         currColor = None
 
-    # Show the (grey) frame
+    # Show the (gray) frame
     cv.imshow("Aruco Detection", gray)
     
     # Quit when the user hits 'q'
