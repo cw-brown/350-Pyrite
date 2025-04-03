@@ -71,6 +71,9 @@ def updateLCD():
         else:
             message = [9.9,99.9]
 ##        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, message)
+
+        #*************************************************
+        # To send a string
         message = str(message)
         lcd.clear() 
         lcd.message = str(message)
