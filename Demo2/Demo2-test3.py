@@ -69,18 +69,16 @@ def updateLCD():
     while True:
         if not lcdQueue.empty():
             message = lcdQueue.get()
-        else:
-            message = [9.9,99.9]
+##        else:
+##            message = [9.9,99.9]
 ##        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, message)
 
         #*************************************************
         # To send a string
-        message = str(message)
-        lcd.clear() 
-        lcd.message = message
+            message = str(message)
+            lcd.clear() 
+            lcd.message = message
         # Send the wheelLocation data to the Arduino using smbus2
-        command = [ord(character) for character in message]
-        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
 
 
 # find the angle off the center axis of rotation. return an angle to 1 decimal point of accuracy      
@@ -154,10 +152,9 @@ def get_color(cnrs, frame, ids):
 
         # Check if any pixels are detected for red or green color in the right or left regions
         if red_mask_right is not None and np.count_nonzero(red_mask_right) > 0:
-            color = "Red"
+            color = -90.0 #Red     
         elif green_mask_left is not None and np.count_nonzero(green_mask_left) > 0:
-            color = "Green"
-    
+            color = 90.0 # Green
     return color
 
 # Start the LCD update thread
@@ -183,33 +180,27 @@ while True:
 
     currDistance = 9.9
     currAngle = 99.9
-    if ids is not None:
-        currAngle = get_angle(corners) # find the angle
-        currDistance = get_distance(corners) # find the distance
+    if ids is not None: # if we find markers
+        
+        currDistance = get_distance(corners) # find the distance, use to determine if we need to send an angle
 
-        # Check the distance ( > 1 or <= 1)
-        # If the distance is <= 1 foot (3.28 meters) ONLY detect color
+        # Check the distance ( > 1 or <= 1), only detect color within 1 foot, and detect angle outside 1 foot
         if currDistance <= 1:  
-            currColor = get_color(corners,frame,ids)
-            currDistance = 0.0
-            if currColor == "Green":
-                currAngle = 90.0
-            elif currColor == "Red":
-                currAngle = -90.0
+            currAngle = get_color(corners,frame,ids) # Set the angle to the detected color
+            currDistance = 0.0 # tell the robot to not move
         else:
-            currColor = None
+            currAngle = get_angle(corners) # find the angle
+            currColor = 1 # unused input, set it to something so no errors
     
-            
-        message = [currDistance, currAngle]
-        message = str(message)
+        message = [currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
+        message = str(message) # turn it into a string
         command = [ord(character) for character in message]
         i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
-##        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, message) # send the data to ard as an array of floats
    
 
         # Update LCD only when necessary (based on the angle, distance, or color change)
-##        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance or currColor != lastColor):
-        if time() - last_update_time >= 1:
+        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance):
+##        if time() - last_update_time >= 1:
             if currAngle != lastAngle:
                 lastAngle = currAngle # update the angle
             if currDistance != lastDistance:
@@ -217,15 +208,24 @@ while True:
             if currColor != lastColor:
                 lastColor = currColor # update the color
             lcdPrompt = [currDistance, currAngle]
-##            i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, lcdPrompt) # send the data to ard as an array of floats
             lcdQueue.put(lcdPrompt)
             last_update_time = time()    
 
     else:
-        currAngle = None
-        currDistance = None
-        currColor = None
-
+        currAngle = 9.9
+        currDistance = 99.9
+        if currDistance != lastDistance or currAngle != lastAngle:
+            lastAngle = currAngle
+            lastDistance = currDistance
+            lcdPrompt = [currDistance, currAngle]
+            lcdQueue.put(lcdPrompt)
+            last_update_time = time()  
+            
+        currColor = 1 # place holder value
+        message = [currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
+        message = str(message) # turn it into a string
+        command = [ord(character) for character in message]
+        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
     # Show the (gray) frame
     cv.imshow("Aruco Detection", gray)
     
