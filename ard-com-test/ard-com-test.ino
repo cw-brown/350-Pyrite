@@ -4,9 +4,10 @@ const int slaveAddress = 8;  // I2C address of the slave device
 float vector[2];  // 2-element vector to receive
 
 void setup() {
+  Serial.begin(9600);
   Wire.begin(slaveAddress);  // Start I2C as slave with the given address
   Wire.onReceive(receiveEvent);  // Function to call when master sends data
-  Serial.begin(9600);
+  Serial.println("Arduino is ready to receive data...");
 }
 
 void loop() {
@@ -15,6 +16,9 @@ void loop() {
 
 // Function to receive data from the master
 void receiveEvent(int bytes) {
+  Serial.print("Bytes received: ");
+  Serial.println(bytes);
+  
   if (bytes == sizeof(vector)) {
     // Read 8 bytes and convert them to float values
     byte* data = (byte*) &vector;
@@ -27,5 +31,7 @@ void receiveEvent(int bytes) {
     Serial.print(vector[0], 2);  // Print first float with 2 decimal places
     Serial.print(", ");
     Serial.println(vector[1], 2);  // Print second float with 2 decimal places
+  } else {
+    Serial.println("Unexpected number of bytes received.");
   }
 }
