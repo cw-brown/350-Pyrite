@@ -90,7 +90,7 @@ float errorRhoInitial = 0;
 float integralRho = 0;
 float KpRho = 30.3514;
 float KdRho = 2.2038;
-float KiRho = 0.383;
+float KiRho = 0.583; //.383 if voltage higher?
 float rhoVel = 0;
 float errorRhoVel = 0;
 float KpRhoVel = .8;
@@ -155,7 +155,7 @@ void loop() {
   switch (mode) {
     case SEEK:  // turn until finding marker
       if (!f_detected) {
-        desiredPhi += 0.05 * PI / 180;
+        desiredPhi += .25 * PI / 180;
         Serial.println("Searching");
       }
       else if (f_detected) {
