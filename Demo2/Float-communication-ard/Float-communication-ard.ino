@@ -1,33 +1,19 @@
 #include <Wire.h>
 
-const int slaveAddress = 8;  // I2C address of the slave device
-float vector[2];             // Distance and angle
-uint8_t flag1, flag2;        // Two flag bytes
+const int slaveAddress = 8;
+float vector[2] = {0.0, 0.0};
+uint8_t flag1 = 0, flag2 = 0;
+bool newData = false;
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin(slaveAddress);          // Start I2C as slave
-  Wire.onReceive(receiveEvent);      // Register callback
+  Wire.begin(slaveAddress);
+  Wire.onReceive(receiveEvent);
   Serial.println("Arduino is ready to receive data...");
 }
 
 void loop() {
-  // Nothing here; event-driven receive
-}
-
-void receiveEvent(int bytes) {
-  if (bytes >= 10) {
-    // Read flags
-    flag1 = Wire.read();  // First byte
-    flag2 = Wire.read();  // Second byte
-
-    // Read 8 bytes into float array (2 floats)
-    byte* data = (byte*) &vector;
-    for (int i = 0; i < sizeof(vector); i++) {
-      data[i] = Wire.read();
-    }
-
-    // Print everything
+  if (newData) {
     Serial.print("Flags: ");
     Serial.print(flag1);
     Serial.print(", ");
@@ -36,6 +22,24 @@ void receiveEvent(int bytes) {
     Serial.print(vector[0], 2);  // Distance
     Serial.print(", ");
     Serial.println(vector[1], 2);  // Angle
+
+    newData = false;  // Reset flag after printing
+  }
+
+  delay(100);  // Slight delay to avoid spamming the serial monitor
+}
+
+void receiveEvent(int bytes) {
+  if (bytes >= 10) {
+    flag1 = Wire.read();
+    flag2 = Wire.read();
+
+    byte* data = (byte*) &vector;
+    for (int i = 0; i < sizeof(vector); i++) {
+      data[i] = Wire.read();
+    }
+
+    newData = true;  // Mark new data received
   } else {
     Serial.println("Error: Not enough bytes received.");
   }
