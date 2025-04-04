@@ -17,6 +17,7 @@ const int BUFFER_SIZE = 4; // new
 byte buffer[BUFFER_SIZE]; // new
 bool doTurn = true;
 bool atMarker = false;
+volatile int arrow = 2;           // 0=left, 1=right, 2=no arrow
 
 // Pin Definitions
 const uint8_t M_ENABLE = 4; // So motors are on
@@ -154,15 +155,15 @@ void loop() {
   switch (mode) {
     case SEEK:  // turn until finding marker
       if (!f_detected) {
-        desiredPhi += 0.5 * PI / 180;
-        //Serial.println("Searching");
+        desiredPhi += 0.05 * PI / 180;
+        Serial.println("Searching");
       }
       else if (f_detected) {
         Serial.println("Marker Found");
         analogWrite(M_PWM[0], 0);
         analogWrite(M_PWM[1], 0);
         delay(500);
-        desiredPhi = phi + markerPhi * (PI / 180);
+        desiredPhi = phi - markerPhi * (PI / 180);
         mode = ROTATE;
       }
       break;
@@ -188,11 +189,12 @@ void loop() {
         }
       }
       break;
-      break;
     
     case MOVE_FWD:  // Move forward to desiredRho
-      //Serial.println("Move Fwd");
-      if ((rho - desiredRho) <= 1.0 && (rho - desiredRho) >= 0.0) {
+      Serial.println("Move Fwd");
+      Serial.println(rho);
+      Serial.println(desiredRho);
+      if (rho >= desiredRho + (0)) {
         atMarker = true;
         mode = STOP;
       }
@@ -201,15 +203,16 @@ void loop() {
     case STOP:  // Wait for camera or wait indefinitely (stop)
       analogWrite(M_PWM[0], 0);
       analogWrite(M_PWM[1], 0);
-      KdPhi = 45;
+      //KdPhi = 45;
       if (atMarker == true && doTurn == true) {
-        if (markerPhi == -90) { // left
+      Serial.println("in turn if");
+        if (arrow == 0) { // left
           Serial.println("Left turn");
           delay(2000);
           desiredPhi = phi + (PI / 2);
           mode = ROTATE;
         }
-        else if (markerPhi == 90) { // right
+        else if (arrow == 1) { // right
           Serial.println("Right turn");
           delay(2000);
           desiredPhi = phi - (PI / 2);
@@ -316,49 +319,33 @@ void loop() {
 void receiveData (){
   while (Wire.available()) {
     Wire.read(); // discard first byte (offset)
-    // // need to read four bytes and convert into float
-    // for (int i = 0; i < BUFFER_SIZE; i++) {
-    //     buffer[i] = Wire.read();
-    // }
-    // memcpy(&markerRho, buffer, sizeof(markerRho));
+    // need to read four bytes and convert into float
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        buffer[i] = Wire.read();
+    }
+    memcpy(&markerRho, buffer, sizeof(markerRho));
 
-    // for (int i = 0; i < BUFFER_SIZE; i++) {
-    //     buffer[i] = Wire.read();
-    // }
-    // memcpy(&markerPhi, buffer, sizeof(markerPhi));
-    while (Wire.available()) {
-    instruction[msgLength] = Wire.read();
-//    instruction = Wire.read();
-    msgLength++;
-  }
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        buffer[i] = Wire.read();
+    }
+    memcpy(&markerPhi, buffer, sizeof(markerPhi));
 
-  for (int i=0;i<msgLength;i++) {
-//    Serial.print("     ");
-    Serial.print(char(instruction[i]));
-//      Serial.print(instruction[i]);
-    //Serial.print("\t\r\n");
-    //
-  }
-  Serial.println("");
-
-    String message = String((char*)msg);
-    Serial.print("Message: "); Serial.println(message);
-    String distanceStr = message.substring(0, 3); // First 3 characters (x.x)
-    // Extract the angle (phi) from the remaining part of the string
-    String angleStr = message.substring(3); // Rest of the string (xx.x)
-
-    // Convert the strings to floats
-    markerRho = distanceStr.toFloat();
-    markerPhi = angleStr.toFloat();
-
-    // Debugging output
-    Serial.print("Distance: "); Serial.println(markerRho);
-    Serial.print("Angle: "); Serial.println(markerPhi);
-
-    if (markerRho == 9.9f && markerPhi == 99.9f) {
+    if (markerRho == 98.90f && markerPhi == 99.90f) {
       f_detected = false;  // No marker detected
     } else {
       f_detected = true;   // Marker detected
     }
+
+    if (markerPhi == -90){
+      arrow = 0;
+    }else if (markerPhi == 90){
+      arrow = 1;
+    }else{
+      arrow = 2;
+    }
+    
+    //markerPhi = -markerPhi;
+    Serial.print(markerRho);
+    Serial.println(markerPhi);
   }
 }
