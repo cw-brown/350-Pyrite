@@ -136,9 +136,9 @@ def get_color(cnrs, frame, ids):
         hsv_left = cv.cvtColor(roi_left, cv.COLOR_BGR2HSV) if roi_left.size > 0 else None
 
         # Define color ranges for red and green in HSV
-        red_range_1 = [(0, 120, 70), (10, 255, 255)]  # Lower red range
-        red_range_2 = [(170, 120, 70), (180, 255, 255)]  # Upper red range
-        green_range = [(40, 40, 40), (80, 255, 255)]  # Green range
+        red_range_1 = [(0, 120, 70), (5, 255, 255)]  # Lower red range
+        red_range_2 = [(170, 120, 70), (175, 255, 255)]  # Upper red range
+        green_range = [(50, 40, 40), (70, 255, 255)]  # Green range
 
         # Threshold the HSV images to detect red and green colors
         red_mask_right = None
@@ -150,7 +150,6 @@ def get_color(cnrs, frame, ids):
         
         if hsv_left is not None:
             green_mask_left = cv.inRange(hsv_left, np.array(green_range[0]), np.array(green_range[1]))
-
         # Check if any pixels are detected for red or green color in the right or left regions
         if red_mask_right is not None and np.count_nonzero(red_mask_right) > 0:
             color = -90.0 #Red
@@ -158,6 +157,8 @@ def get_color(cnrs, frame, ids):
         elif green_mask_left is not None and np.count_nonzero(green_mask_left) > 0:
             color = 90.0 #Green
 ##            print("90.0 / Green")
+        
+
     return color
 
 # Start the LCD update thread
@@ -246,7 +247,7 @@ while True:
         
     except:
         continue
-    cv.imshow("Aruco Detection", frame)
+##    cv.imshow("Aruco Detection", frame)
     # Quit when the user hits 'q'
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
