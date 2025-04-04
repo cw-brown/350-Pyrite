@@ -134,7 +134,7 @@ def get_color(cnrs, frame, ids):
         # Convert both ROIs to HSV color space
         hsv_right = cv.cvtColor(roi_right, cv.COLOR_BGR2HSV) if roi_right.size > 0 else None
         hsv_left = cv.cvtColor(roi_left, cv.COLOR_BGR2HSV) if roi_left.size > 0 else None
-
+##        print(hsv_left)
         # Define color ranges for red and green in HSV
         red_range_1 = [(0, 120, 70), (5, 255, 255)]  # Lower red range
         red_range_2 = [(170, 120, 70), (175, 255, 255)]  # Upper red range
@@ -157,7 +157,9 @@ def get_color(cnrs, frame, ids):
         elif green_mask_left is not None and np.count_nonzero(green_mask_left) > 0:
             color = 90.0 #Green
 ##            print("90.0 / Green")
-        
+##    cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
+##    cv.imshow("Aruco Detection", cropped_frame)
+##    print(color)
 
     return color
 
@@ -190,7 +192,7 @@ while True:
         currDistance = get_distance(corners) # find the distance, use to determine if we need to send an angle
 
         # Check the distance ( > 1 or <= 1), only detect color within 1 foot, and detect angle outside 1 foot
-        if currDistance <= 3:  
+        if currDistance <= 2:  
             currAngle = get_color(corners,frame,ids) # Set the angle to the detected color
 ##            currDistance = 1 # tell the robot to not move
         else:
