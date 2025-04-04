@@ -36,7 +36,7 @@ currAngle = None
 lastAngle = None
 currDistance = None
 lastDistance= None
-Arrow = None
+arrow = None
 
 # Marker detection flag
 markerFound = 0 
@@ -45,7 +45,8 @@ markerFound = 0
 last_update_time = time()
 
 # find the angle off the center axis of rotation. return an angle to 1 decimal point of accuracy      
-def get_angle(rvecs, tvecs):        
+def get_angle(rvecs, tvecs):
+    
     for i in range(len(ids)):
         rvec = rvecs[i][0]
         tvec = tvecs[i][0]
@@ -55,12 +56,11 @@ def get_angle(rvecs, tvecs):
         
         # Angle between camera axis and marker
         angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
-        angle = float(round(angle, 1)) # round the angle to 2 decimal points. 
+        angle = float(round(angle, 1)) # round the angle to 2 decimal points.
     return angle
 
 # find the distance to the marker retrun a distance of 1 decimal point of accuracy
 def get_distance(rvecs, tvecs):
-    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
     for i in range(len(ids)):
         rvec = rvecs[i][0]
         tvec = tvecs[i][0]
@@ -122,7 +122,6 @@ def get_color(cnrs, frame, ids):
 ##    cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
 ##    cv.imshow("Aruco Detection", cropped_frame)
 ##    print(color)
-
     return color
 
 # Run until the user types 'q' to quit
@@ -144,9 +143,9 @@ while True:
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
     rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, dist)
 
-    # Initialize the currDistance and currAngle as 9.9 and 99.9
-    currDistance = 9.9
-    currAngle = 99.9
+##    # Initialize the currDistance and currAngle as 9.9 and 99.9
+##    currDistance = 9.9
+##    currAngle = 99.9
     
     if ids is not None: # We see markers
         
@@ -163,7 +162,7 @@ while True:
         else:
             currAngle = get_angle(rvecs, tvecs) # find the angle
     
-        messageToArd = [markerFound, arrorw, currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
+        messageToArd = [markerFound, arrow, currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
          # Convert the floats into a byte array (4 bytes each)
 ##        data = struct.pack('bbff', message[0], message[1])
 ##        
@@ -203,7 +202,7 @@ while True:
     try: # try to send to ard
 ##        print(message[0])
 ##        print(message[1])
-        data = struct.pack('bbff', message[0] - 1, message[1])
+        data = struct.pack('BBff', markerFound, arrow, messageToArd[2] - 1, messageToArd[3])
         i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
         # Show the (gray) frame
         
