@@ -10,7 +10,9 @@ volatile uint8_t reg;
 uint8_t msg[12];  // Buffer to hold received bytes  // new
 // recieved data from camera
 float markerPhi = 0.0;  // new
+float oldMPhi = markerPhi;  // new
 float markerRho = 0.0;  // new
+float oldMRho = markerRho;  // new
 bool f_detected = false;  // Flag for object detection  // new
 // volatile uint8_t instruction[32] = {0}; // new
 const int BUFFER_SIZE = 4; // new
@@ -97,6 +99,7 @@ float KpRhoVel = .8;
 
 enum Mode {SEEK, MOVE_FWD, ROTATE, STOP};  // Define the states // new
 Mode mode = SEEK;  // Initialize to a mode
+Mode prevMode = SEEK;
 
 void setup() {
   Serial.begin(115200);
@@ -155,8 +158,8 @@ void loop() {
   switch (mode) {
     case SEEK:  // turn until finding marker
       if (!f_detected) {
-        desiredPhi += .25 * PI / 180;
-        Serial.println("Searching");
+        desiredPhi += .05 * PI / 180;
+        //Serial.println("Searching");
       }
       else if (f_detected) {
         Serial.println("Marker Found");
@@ -169,6 +172,7 @@ void loop() {
       break;
 
     case ROTATE:  // Align to desiredPhi
+      KiPhi = 3.75;
       desiredRhoVel = 0; // we want to be stationary around axle center axis
       desiredRho = rho;
       //Serial.println("Turning");
@@ -191,10 +195,11 @@ void loop() {
       break;
     
     case MOVE_FWD:  // Move forward to desiredRho
+      KiPhi = 13.75;
       Serial.println("Move Fwd");
       Serial.println(rho);
       Serial.println(desiredRho);
-      if (rho >= desiredRho + (0)) {
+      if (rho >= desiredRho + (-1)) {
         atMarker = true;
         mode = STOP;
       }
@@ -226,7 +231,7 @@ void loop() {
         }
       }
       else {
-        Serial.println("Stop");
+        //Serial.println("Stop");
         analogWrite(M_PWM[0], 0);
         analogWrite(M_PWM[1], 0);
       }
@@ -330,10 +335,12 @@ void receiveData (){
     }
     memcpy(&markerPhi, buffer, sizeof(markerPhi));
 
-    if (markerRho == 98.90f && markerPhi == 99.90f) {
-      f_detected = false;  // No marker detected
+    if (abs(markerPhi) <= 91.0f && markerRho <=10.0f) {
+      f_detected = true;  // No marker detected
     } else {
-      f_detected = true;   // Marker detected
+      f_detected = false;   // Marker detected
+      markerPhi = oldMPhi;  // new
+      markerRho = oldMRho;  // new
     }
 
     if (markerPhi == -90){
@@ -345,7 +352,9 @@ void receiveData (){
     }
     
     //markerPhi = -markerPhi;
-    Serial.print(markerRho);
+    //Serial.println(markerRho);
     Serial.println(markerPhi);
+    oldMPhi = markerPhi;  // new
+    oldMRho = markerRho;  // new
   }
 }
