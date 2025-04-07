@@ -10,13 +10,16 @@ volatile uint8_t reg;
 uint8_t msg[12];  // Buffer to hold received bytes  // new
 // recieved data from camera
 float markerPhi = 0.0;  // new
+float oldMPhi = markerPhi;  // new
 float markerRho = 0.0;  // new
+float oldMRho = markerRho;  // new
 bool f_detected = false;  // Flag for object detection  // new
 // volatile uint8_t instruction[32] = {0}; // new
 const int BUFFER_SIZE = 4; // new
 byte buffer[BUFFER_SIZE]; // new
 bool doTurn = true;
 bool atMarker = false;
+volatile int arrow = 2;           // 0=left, 1=right, 2=no arrow
 
 // Pin Definitions
 const uint8_t M_ENABLE = 4; // So motors are on
@@ -89,13 +92,14 @@ float errorRhoInitial = 0;
 float integralRho = 0;
 float KpRho = 30.3514;
 float KdRho = 2.2038;
-float KiRho = 0.383;
+float KiRho = 0.583; //.383 if voltage higher?
 float rhoVel = 0;
 float errorRhoVel = 0;
 float KpRhoVel = .8;
 
 enum Mode {SEEK, MOVE_FWD, ROTATE, STOP};  // Define the states // new
 Mode mode = SEEK;  // Initialize to a mode
+Mode prevMode = SEEK;
 
 void setup() {
   Serial.begin(115200);
@@ -154,7 +158,7 @@ void loop() {
   switch (mode) {
     case SEEK:  // turn until finding marker
       if (!f_detected) {
-        desiredPhi += 0.5 * PI / 180;
+        desiredPhi += .05 * PI / 180;
         //Serial.println("Searching");
       }
       else if (f_detected) {
@@ -162,12 +166,13 @@ void loop() {
         analogWrite(M_PWM[0], 0);
         analogWrite(M_PWM[1], 0);
         delay(500);
-        desiredPhi = phi + markerPhi * (PI / 180);
+        desiredPhi = phi - markerPhi * (PI / 180);
         mode = ROTATE;
       }
       break;
 
     case ROTATE:  // Align to desiredPhi
+      KiPhi = 3.75;
       desiredRhoVel = 0; // we want to be stationary around axle center axis
       desiredRho = rho;
       //Serial.println("Turning");
@@ -177,7 +182,7 @@ void loop() {
         analogWrite(M_PWM[0], 0);
         analogWrite(M_PWM[1], 0);
         delay(1000);
-        desiredPhi = phi;
+        desiredPhi = phi - markerPhi * (PI / 180);
         desiredRho = rho + markerRho;
         if (atMarker == true) {
           atMarker = false;
@@ -188,11 +193,14 @@ void loop() {
         }
       }
       break;
-      break;
     
     case MOVE_FWD:  // Move forward to desiredRho
-      //Serial.println("Move Fwd");
-      if ((rho - desiredRho) <= 1.0 && (rho - desiredRho) >= 0.0) {
+      KiPhi = 13.75;
+      desiredRho = rho + markerRho;
+      Serial.println("Move Fwd");
+      Serial.println(rho);
+      Serial.println(desiredRho);
+      if (rho >= desiredRho + (-1)) {
         atMarker = true;
         mode = STOP;
       }
@@ -201,15 +209,16 @@ void loop() {
     case STOP:  // Wait for camera or wait indefinitely (stop)
       analogWrite(M_PWM[0], 0);
       analogWrite(M_PWM[1], 0);
-      KdPhi = 45;
+      //KdPhi = 45;
       if (atMarker == true && doTurn == true) {
-        if (markerPhi == -90) { // left
+      Serial.println("in turn if");
+        if (arrow == 0) { // left
           Serial.println("Left turn");
           delay(2000);
           desiredPhi = phi + (PI / 2);
           mode = ROTATE;
         }
-        else if (markerPhi == 90) { // right
+        else if (arrow == 1) { // right
           Serial.println("Right turn");
           delay(2000);
           desiredPhi = phi - (PI / 2);
@@ -223,7 +232,7 @@ void loop() {
         }
       }
       else {
-        Serial.println("Stop");
+        //Serial.println("Stop");
         analogWrite(M_PWM[0], 0);
         analogWrite(M_PWM[1], 0);
       }
@@ -316,49 +325,37 @@ void loop() {
 void receiveData (){
   while (Wire.available()) {
     Wire.read(); // discard first byte (offset)
-    // // need to read four bytes and convert into float
-    // for (int i = 0; i < BUFFER_SIZE; i++) {
-    //     buffer[i] = Wire.read();
-    // }
-    // memcpy(&markerRho, buffer, sizeof(markerRho));
-
-    // for (int i = 0; i < BUFFER_SIZE; i++) {
-    //     buffer[i] = Wire.read();
-    // }
-    // memcpy(&markerPhi, buffer, sizeof(markerPhi));
-    while (Wire.available()) {
-    instruction[msgLength] = Wire.read();
-//    instruction = Wire.read();
-    msgLength++;
-  }
-
-  for (int i=0;i<msgLength;i++) {
-//    Serial.print("     ");
-    Serial.print(char(instruction[i]));
-//      Serial.print(instruction[i]);
-    //Serial.print("\t\r\n");
-    //
-  }
-  Serial.println("");
-
-    String message = String((char*)msg);
-    Serial.print("Message: "); Serial.println(message);
-    String distanceStr = message.substring(0, 3); // First 3 characters (x.x)
-    // Extract the angle (phi) from the remaining part of the string
-    String angleStr = message.substring(3); // Rest of the string (xx.x)
-
-    // Convert the strings to floats
-    markerRho = distanceStr.toFloat();
-    markerPhi = angleStr.toFloat();
-
-    // Debugging output
-    Serial.print("Distance: "); Serial.println(markerRho);
-    Serial.print("Angle: "); Serial.println(markerPhi);
-
-    if (markerRho == 9.9f && markerPhi == 99.9f) {
-      f_detected = false;  // No marker detected
-    } else {
-      f_detected = true;   // Marker detected
+    // need to read four bytes and convert into float
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        buffer[i] = Wire.read();
     }
+    memcpy(&markerRho, buffer, sizeof(markerRho));
+
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        buffer[i] = Wire.read();
+    }
+    memcpy(&markerPhi, buffer, sizeof(markerPhi));
+
+    if (abs(markerPhi) <= 91.0f && markerRho <=10.0f) {
+      f_detected = true;  // No marker detected
+    } else {
+      f_detected = false;   // Marker detected
+      markerPhi = oldMPhi;  // new
+      markerRho = oldMRho;  // new
+    }
+
+    if (markerPhi == -90){
+      arrow = 0;
+    }else if (markerPhi == 90){
+      arrow = 1;
+    }else{
+      arrow = 2;
+    }
+    
+    //markerPhi = -markerPhi;
+    //Serial.println(markerRho);
+    Serial.println(markerPhi);
+    oldMPhi = markerPhi;  // new
+    oldMRho = markerRho;  // new
   }
 }
