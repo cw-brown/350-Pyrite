@@ -1,52 +1,58 @@
 #include <Wire.h>
 
+// I2C slave address
 const int slaveAddress = 8;
 
+// Buffers
 float distance = 0.0;
 float angle = 0.0;
-uint8_t flag1 = 0;
-uint8_t flag2 = 0;
-uint8_t offset = 0;
+byte controlFlags[4];  // markerFound, arrowDir, flag2, pad
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin(slaveAddress);
+  Wire.begin(slaveAddress);  // Join I2C bus as slave
   Wire.onReceive(receiveEvent);
-  Serial.println("Arduino ready...");
+  Serial.println("Ready to receive data...");
 }
 
 void loop() {
-  // nothing needed here
+  
 }
 
-void receiveEvent(int bytes) {
-  if (bytes == 11) {
-    offset = Wire.read();  // Read the offset byte first
-    flag1 = Wire.read();
-    flag2 = Wire.read();
+void receiveEvent(int numBytes) {
+  if (numBytes == 13) {
+    // Read and ignore offset byte
+    byte offset = Wire.read(); 
 
-    union { byte b[4]; float f; } uf;
+    // Read control flags
+    for (int i = 0; i < 2; i++) {
+      controlFlags[i] = Wire.read();
+    }
+    Wire.read();
+    Wire.read();
 
-    // Read distance
-    for (int i = 0; i < 4; i++) uf.b[i] = Wire.read();
-    distance = uf.f;
+    // Read distance (float, 4 bytes)
+    byte distBytes[4];
+    for (int i = 0; i < 4; i++) {
+      distBytes[i] = Wire.read();
+    }
+    memcpy(&distance, distBytes, sizeof(float));
 
-    // Read angle
-    for (int i = 0; i < 4; i++) uf.b[i] = Wire.read();
-    angle = uf.f;
+    // Read angle (float, 4 bytes)
+    byte angleBytes[4];
+    for (int i = 0; i < 4; i++) {
+      angleBytes[i] = Wire.read();
+    }
+    memcpy(&angle, angleBytes, sizeof(float));
 
-    Serial.print("Offset: 0x");
-    Serial.print(offset, HEX);
-    Serial.print(" | Flags: ");
-    Serial.print(flag1);
-    Serial.print(", ");
-    Serial.print(flag2);
-    Serial.print(" | Distance: ");
-    Serial.print(distance, 2);
-    Serial.print(" ft | Angle: ");
-    Serial.println(angle, 2);
+    // Print everything
+    Serial.print("markerFound: "); Serial.print(controlFlags[0]);
+    Serial.print(", arrowDir: ");  Serial.print(controlFlags[1]);
+//    Serial.print(", flag2: ");     Serial.print(controlFlags[2]);
+    Serial.print(", distance: ");  Serial.print(distance, 2);
+    Serial.print(", angle: ");     Serial.println(angle, 2);
+    
   } else {
-    Serial.print("Wrong byte count: ");
-    Serial.println(bytes);
+    Serial.println("❌ Error: Not enough bytes received.");
   }
 }

@@ -18,6 +18,8 @@ ARD_ADDR = 8
 # I2C declarations for ard and lcd
 i2cLCD = board.I2C()  # uses board.SCL and board.SDA
 i2cARD = smbus2.SMBus(1)  # Use I2C bus 1 for communication with Arduino
+# init the camera
+cap = cv.VideoCapture(0)
 
 ### Initialise the queue where a distance and vector is stored
 ##lcdQueue = queue.Queue()
@@ -42,8 +44,7 @@ parameters = cv.aruco.DetectorParameters()
 ##LCD_ROWS = 2
 ##lcd = character_lcd.Character_LCD_RGB_I2C(i2cLCD, LCD_COLUMS, LCD_ROWS)
 
-# init the camera
-cap = cv.VideoCapture(0)
+
 
 # Angle, distance and color place holders
 currAngle = None
@@ -117,7 +118,7 @@ def get_color(cnrs, frame, ids):
         x_max, y_max = np.max(marker_corners, axis=0).astype(int)
 
         # Define the region to the right and left of the marker (with an offset)
-        offset = 100  # Pixels to shift the region to the right or left
+        offset = 70  # Pixels to shift the region to the right or left
         roi_x_min_left = max(0, x_min - offset)
         roi_x_max_left = x_min
         roi_x_min_right = x_max
@@ -192,7 +193,7 @@ while True:
         currDistance = get_distance(corners) # find the distance, use to determine if we need to send an angle
 
         # Check the distance ( > 1 or <= 1), only detect color within 1 foot, and detect angle outside 1 foot
-        if currDistance <= 2:  
+        if currDistance <= 1.7:  
             currAngle = get_color(corners,frame,ids) # Set the angle to the detected color
 ##            currDistance = 1 # tell the robot to not move
         else:
@@ -243,7 +244,7 @@ while True:
     try:
 ##        print(message[0])
 ##        print(message[1])
-        data = struct.pack('ff', message[0] - 1, message[1])
+        data = struct.pack('ff', message[0], message[1])
         i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
         # Show the (gray) frame
         

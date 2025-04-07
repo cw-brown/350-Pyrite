@@ -31,22 +31,24 @@ parameters = cv.aruco.DetectorParameters()
 # init the camera
 cap = cv.VideoCapture(0)
 
-# Angle, arrow and distance place holders
-currAngle = None
-lastAngle = None
-currDistance = None
-lastDistance= None
-arrow = None
+# Angle and distance place holders
+currAngle = 99.9
+lastAngle = 99.9
+##currDistance = None
+##lastDistance= None
 
-# Marker detection flag
-markerFound = 0 
+# Marker detection flag (0 = No markers detected, 1 = markers detected)
+markerFound = 0
+
+# Arrow detection flag ( 0 = No arrow, 1 = Right, 2 = Left)
+arrow = 0
 
 # Implement time based sending
 last_update_time = time()
 
 # find the angle off the center axis of rotation. return an angle to 1 decimal point of accuracy      
 def get_angle(rvecs, tvecs):
-    
+##    print("Angle")
     for i in range(len(ids)):
         rvec = rvecs[i][0]
         tvec = tvecs[i][0]
@@ -61,6 +63,7 @@ def get_angle(rvecs, tvecs):
 
 # find the distance to the marker retrun a distance of 1 decimal point of accuracy
 def get_distance(rvecs, tvecs):
+##    print("Distance")
     for i in range(len(ids)):
         rvec = rvecs[i][0]
         tvec = tvecs[i][0]
@@ -69,6 +72,7 @@ def get_distance(rvecs, tvecs):
 
 # find the color on the marker
 def get_color(cnrs, frame, ids):
+##    print("color")
     for i in range(len(ids)):
         color = None
         # Get the coordinates of the marker corners
@@ -77,7 +81,7 @@ def get_color(cnrs, frame, ids):
         x_max, y_max = np.max(marker_corners, axis=0).astype(int)
 
         # Define the region to the right and left of the marker (with an offset)
-        offset = 100  # Pixels to shift the region to the right or left
+        offset = 70  # Pixels to shift the region to the right or left
         roi_x_min_left = max(0, x_min - offset)
         roi_x_max_left = x_min
         roi_x_min_right = x_max
@@ -160,9 +164,10 @@ while True:
             arrow = get_color(corners,frame,ids) 
 ##            currDistance = 1 # tell the robot to not move
         else:
+            arrow = 0 # set the arrow to 0 if there is no marker
             currAngle = get_angle(rvecs, tvecs) # find the angle
     
-        messageToArd = [markerFound, arrow, currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
+##        messageToArd = [markerFound, arrow, currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
          # Convert the floats into a byte array (4 bytes each)
 ##        data = struct.pack('bbff', message[0], message[1])
 ##        
@@ -174,42 +179,51 @@ while True:
    
 
         # Update LCD only when necessary (based on the angle, distance, or color change)
-        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance):
-##        if time() - last_update_time >= 1:
-            if currAngle != lastAngle:
-                lastAngle = currAngle # update the angle
-            if currDistance != lastDistance:
-                lastDistance = currDistance # update the distance
+##        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance):
+####        if time() - last_update_time >= 1:
+##            if currAngle != lastAngle:
+##                lastAngle = currAngle # update the angle
+##            if currDistance != lastDistance:
+##                lastDistance = currDistance # update the distance
 
     else: # No markers are found
         markerFound = 0 
-
+        arrow = 0
         # Do we need these if there are no markers found?
         currAngle = 99.9
         currDistance = 99.9
 
         # Update the distance and angle if they change
-        if currDistance != lastDistance or currAngle != lastAngle:
-            lastAngle = currAngle
-            lastDistance = currDistance
+##        if currDistance != lastDistance or currAngle != lastAngle:
+##            lastAngle = currAngle
+##            lastDistance = currDistance
             
-        messageToArd = [markerFound, arrow, currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
+    messageToArd = [markerFound, arrow, currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
         
          # Convert the floats into a byte array (4 bytes each)
 ##    data = struct.pack('bbff', message[0], message[1])
         
         # Send the packed float data (8 bytes total)
+##    cv.imshow("Aruco Detection", frame)
     try: # try to send to ard
 ##        print(message[0])
 ##        print(message[1])
-        data = struct.pack('BBff', markerFound, arrow, messageToArd[2] - 1, messageToArd[3])
-        i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
-        # Show the (gray) frame
         
+        data = struct.pack('BBff', markerFound, arrow, messageToArd[2], messageToArd[3])
+##        print(len(data))
+        if len(data) != 12:
+            continue
+##        print(data)
+##        data = [markerFound, arrow] + list(struct.pack('<f', currDistance)) + list(struct.pack('<f', currAngle))
+##        print(list(data))
+        i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
+##        i2cARD.write_i2c_block_data(ARD_ADDR, 0,data)
+        # Show the (gray) frame
+##        print("send")
     except: # continue if we get an i2c error
         continue
     
-##    cv.imshow("Aruco Detection", frame)
+    
     # Quit when the user hits 'q'
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
