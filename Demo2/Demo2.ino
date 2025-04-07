@@ -17,7 +17,7 @@ bool f_detected = false;  // Flag for object detection  // new
 // volatile uint8_t instruction[32] = {0}; // new
 const int BUFFER_SIZE = 4; // new
 byte buffer[BUFFER_SIZE]; // new
-bool doTurn = true;
+bool doTurn = false;
 bool atMarker = false;
 volatile int arrow = 2;           // 0=left, 1=right, 2=no arrow
 
@@ -158,7 +158,7 @@ void loop() {
   switch (mode) {
     case SEEK:  // turn until finding marker
       if (!f_detected) {
-        desiredPhi += .05 * PI / 180;
+        desiredPhi += .25 * PI / 180;
         //Serial.println("Searching");
       }
       else if (f_detected) {
@@ -195,7 +195,7 @@ void loop() {
       break;
     
     case MOVE_FWD:  // Move forward to desiredRho
-      KiPhi = 13.75;
+      // KiPhi = 13.75;
       desiredRho = rho + markerRho;
       Serial.println("Move Fwd");
       Serial.println(rho);
