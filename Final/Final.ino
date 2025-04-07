@@ -12,7 +12,7 @@ float oldMRho = markerRho;
 bool f_detected = false;  // Flag for object detection
 const int BUFFER_SIZE = 4; 
 byte buffer[BUFFER_SIZE]; 
-bool doTurn = false;  // hardcoded, to go form STOP to ROTATE 
+bool doTurn = true;  // hardcoded, to go form STOP to ROTATE 
 bool atMarker = false;  // to go from MOVE_FWD to STOP ROTATE 
 volatile int arrow = 2; // 0=left, 1=right, 2=no arrow
 
@@ -154,6 +154,8 @@ void loop() {
       break;
 
     case ROTATE:  // Align to desiredPhi
+      KpPhi = 50;
+      KdPhi = 5;
       KiPhi = 3.75;
       desiredRhoVel = 0; // we want to be stationary around axle center axis
       desiredRho = rho;
@@ -163,9 +165,9 @@ void loop() {
       if (fabs(phi - desiredPhi) <= PI/180) {
         analogWrite(M_PWM[0], 0);
         analogWrite(M_PWM[1], 0);
-        delay(1000);
         desiredPhi = phi - markerPhi * (PI / 180);
         desiredRho = rho + markerRho;
+        delay(1000);
         if (atMarker == true) {
           atMarker = false;
           mode = STOP;
@@ -177,7 +179,14 @@ void loop() {
       break;
     
     case MOVE_FWD:  // Move forward to desiredRho
-      // KiPhi = 13.75;
+      KiPhi = 0.75;
+      KpPhi = 50;
+      KdPhi = 5;
+      if(abs(markerPhi != 90)){
+        if(abs(markerPhi > 1)){
+          desiredPhi = phi - markerPhi * (PI / 180);
+        }
+      }
       desiredRho = rho + markerRho;
       Serial.println("Move Fwd");
       Serial.println(rho);
@@ -336,7 +345,7 @@ void receiveData (){
     
     //markerPhi = -markerPhi;
     //Serial.println(markerRho);
-    Serial.println(markerPhi);
+    //Serial.println(markerPhi);
     oldMPhi = markerPhi;
     oldMRho = markerRho;
   }
