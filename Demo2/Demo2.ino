@@ -182,7 +182,7 @@ void loop() {
         analogWrite(M_PWM[0], 0);
         analogWrite(M_PWM[1], 0);
         delay(1000);
-        desiredPhi = phi;
+        desiredPhi = phi - markerPhi * (PI / 180);
         desiredRho = rho + markerRho;
         if (atMarker == true) {
           atMarker = false;
@@ -196,6 +196,7 @@ void loop() {
     
     case MOVE_FWD:  // Move forward to desiredRho
       KiPhi = 13.75;
+      desiredRho = rho + markerRho;
       Serial.println("Move Fwd");
       Serial.println(rho);
       Serial.println(desiredRho);
