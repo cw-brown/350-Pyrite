@@ -1,6 +1,6 @@
 # EENG 350 Team 7 Pyrite
 ## Demo 2
-The goal of demo 2 was to show a full, albeit limited, integration between computer vision and control. In order to send data between the two subsystems we use **I2C**, a board to board communication protocol. CV will send the distance and the angle. 
+The goal of demo 2 was to show a full, albeit limited, integration between computer vision and control. In order to send data between the two subsystems we use **I2C**, a board to board communication protocol. CV will send the distance and the angle and data about the color when needed. 
 ### State
 CV currently sends 99.9 as an arbitrary number if they don't detect anything and -90/90 for a left/right turn respectively. The arduino code is set up to interpret these and change the state of certain flags. The results of this intepretation determine the state diagram transistions of the internal *finite state machine* for controls.
 ### Control Finite State Machine
