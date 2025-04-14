@@ -12,6 +12,8 @@ import struct
 
 ''' 
 '''
+# Set the feet from marker to start detecting the color of the arrow
+COLOR_DETECTION_THRESHOLD = 2 
 # Arduino I2C address. Verify with i2cdetect 1 in the pi terminal
 ARD_ADDR = 8  
 
@@ -34,8 +36,6 @@ cap = cv.VideoCapture(0)
 # Angle and distance place holders
 currAngle = 99.9
 lastAngle = 99.9
-##currDistance = None
-##lastDistance= None
 
 # Marker detection flag (0 = No markers detected, 1 = markers detected)
 markerFound = 0
@@ -134,12 +134,14 @@ while True:
     # Capture the frame
     ret, frame = cap.read()
     if not ret:
-        print("Shit")
+        print("Camera error")
         continue
     
     # Undistort frame
     frame = cv.undistort(frame, cameraMatrix, dist, None, cameraMatrix)
-    
+    hsvFrame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+    cv.imshow("HSV Frame", hsvFrame)
+##    cv.imshow("Frame", frame)
     # Convert to grayscale (This will used to find the marker)
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     
@@ -147,44 +149,21 @@ while True:
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
     rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, dist)
 
-##    # Initialize the currDistance and currAngle as 9.9 and 99.9
-##    currDistance = 9.9
-##    currAngle = 99.9
-    
     if ids is not None: # We see markers
         
         markerFound = 1
 
-        # Find distance to marker location
+        # Find distance and angle to marker location
         currDistance = get_distance(rvecs, tvecs) 
-
-        # Check the distance ( > 1 or <= 1), only detect color within 1 foot, and detect angle outside 1 foot
-        if currDistance <= 2:
+        currAngle = get_angle(rvecs, tvecs)
+        
+        # Check the distance, start detecting angle within COLOR_DETECTION_THRESHOLD
+        if currDistance <= COLOR_DETECTION_THRESHOLD:
             # Set the turn to the detected arrow
-            arrow = get_color(corners,frame,ids) 
+            arrow = get_color(corners,frame,ids)
 ##            currDistance = 1 # tell the robot to not move
         else:
             arrow = 0 # set the arrow to 0 if there is no marker
-            currAngle = get_angle(rvecs, tvecs) # find the angle
-    
-##        messageToArd = [markerFound, arrow, currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
-         # Convert the floats into a byte array (4 bytes each)
-##        data = struct.pack('bbff', message[0], message[1])
-##        
-##        # Send the packed float data (8 bytes total)
-##        i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
-##        message = str(message) # turn it into a string
-##        command = [ord(character) for character in message]
-##        i2cARD.write_i2c_block_data(ARD_ADDR, 0x00, command[1:-1])
-   
-
-        # Update LCD only when necessary (based on the angle, distance, or color change)
-##        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance):
-####        if time() - last_update_time >= 1:
-##            if currAngle != lastAngle:
-##                lastAngle = currAngle # update the angle
-##            if currDistance != lastDistance:
-##                lastDistance = currDistance # update the distance
 
     else: # No markers are found
         markerFound = 0 
@@ -193,30 +172,23 @@ while True:
         currAngle = 99.9
         currDistance = 99.9
 
-        # Update the distance and angle if they change
-##        if currDistance != lastDistance or currAngle != lastAngle:
-##            lastAngle = currAngle
-##            lastDistance = currDistance
-            
-    messageToArd = [markerFound, arrow, currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
-        
-         # Convert the floats into a byte array (4 bytes each)
-##    data = struct.pack('bbff', message[0], message[1])
-        
-        # Send the packed float data (8 bytes total)
+    
 ##    cv.imshow("Aruco Detection", frame)
     try: # try to send to ard
 ##        print(message[0])
 ##        print(message[1])
         
-        data = struct.pack('BBff', markerFound, arrow, messageToArd[2], messageToArd[3])
+##        data = struct.pack('BBff', markerFound, arrow, currDistance, currAngle)
 ##        print(len(data))
-        if len(data) != 12:
-            continue
 ##        print(data)
-##        data = [markerFound, arrow] + list(struct.pack('<f', currDistance)) + list(struct.pack('<f', currAngle))
-##        print(list(data))
-        i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
+        data = [struct.pack('<B', markerFound), struct.pack('<B', arrow)] + list(struct.pack('<f', currDistance)) + list(struct.pack('<f', currAngle))
+        niceData = [markerFound, arrow, currDistance, currAngle]
+        # Only send a valid 10 byte vector
+        if len(data) != 10:
+            continue
+
+##        print(list(niceData))
+##        i2cARD.write_i2c_block_data(ARD_ADDR, 0, data)
 ##        i2cARD.write_i2c_block_data(ARD_ADDR, 0,data)
         # Show the (gray) frame
 ##        print("send")
