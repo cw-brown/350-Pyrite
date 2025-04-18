@@ -140,7 +140,7 @@ while True:
     # Undistort frame
     frame = cv.undistort(frame, cameraMatrix, dist, None, cameraMatrix)
     hsvFrame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-    cv.imshow("HSV Frame", hsvFrame)
+##    cv.imshow("HSV Frame", hsvFrame)
 ##    cv.imshow("Frame", frame)
     # Convert to grayscale (This will used to find the marker)
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
@@ -174,20 +174,27 @@ while True:
 
     
 ##    cv.imshow("Aruco Detection", frame)
+    
     try: # try to send to ard
 ##        print(message[0])
 ##        print(message[1])
-        
-##        data = struct.pack('BBff', markerFound, arrow, currDistance, currAngle)
+        if arrow < 0 or arrow > 2:
+            continue
+##        print(arrow)
+        data = struct.pack('bbff', markerFound, arrow, currDistance, currAngle)
 ##        print(len(data))
-##        print(data)
-        data = [struct.pack('<B', markerFound), struct.pack('<B', arrow)] + list(struct.pack('<f', currDistance)) + list(struct.pack('<f', currAngle))
+##        print(list(data))
+        
+##        data = [struct.pack('<B', markerFound), struct.pack('<B', arrow)] + list(struct.pack('<f', currDistance)) + list(struct.pack('<f', currAngle))
+        i2cARD.write_i2c_block_data(ARD_ADDR, 0,list(data))
+        
         niceData = [markerFound, arrow, currDistance, currAngle]
         # Only send a valid 10 byte vector
         if len(data) != 10:
+##            print("Skip")
             continue
 
-##        print(list(niceData))
+##        print(list(data))
 ##        i2cARD.write_i2c_block_data(ARD_ADDR, 0, data)
 ##        i2cARD.write_i2c_block_data(ARD_ADDR, 0,data)
         # Show the (gray) frame
