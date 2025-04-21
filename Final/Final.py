@@ -226,7 +226,7 @@ while True:
         # Check the distance, start detecting angle within COLOR_DETECTION_THRESHOLD
         if currDistance <= COLOR_DETECTION_THRESHOLD:
             # Set the turn to the detected arrow
-            arrow = get_color(corners,frame,ids)
+            arrow = get_color_code(corners,frame,ids)
 ##            currDistance = 1 # tell the robot to not move
         else:
             arrow = 0 # set the arrow to 0 if there is no marker
