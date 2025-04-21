@@ -71,62 +71,128 @@ def get_distance(rvecs, tvecs):
     return distance
 
 # find the color on the marker
-def get_color(cnrs, frame, ids):
-##    print("color")
-    for i in range(len(ids)):
-        color = None
-        # Get the coordinates of the marker corners
-        marker_corners = cnrs[i][0]
-        x_min, y_min = np.min(marker_corners, axis=0).astype(int)
-        x_max, y_max = np.max(marker_corners, axis=0).astype(int)
+##def get_color(cnrs, frame, ids):
+####    print("color")
+##    for i in range(len(ids)):
+##        color = None
+##        # Get the coordinates of the marker corners
+##        marker_corners = cnrs[i][0]
+##        x_min, y_min = np.min(marker_corners, axis=0).astype(int)
+##        x_max, y_max = np.max(marker_corners, axis=0).astype(int)
+##
+##        # Define the region to the right and left of the marker (with an offset)
+##        offset = 70  # Pixels to shift the region to the right or left
+##        roi_x_min_left = max(0, x_min - offset)
+##        roi_x_max_left = x_min
+##        roi_x_min_right = x_max
+##        roi_x_max_right = min(frame.shape[1], x_max + offset)
+##        roi_y_min = y_min
+##        roi_y_max = y_max
+##
+##        # Extract the region of interest (ROI) for the right side of the marker (red arrow)
+##        roi_right = frame[roi_y_min:roi_y_max, roi_x_min_right:roi_x_max_right]
+##
+##        # Extract the region of interest (ROI) for the left side of the marker (green arrow)
+##        roi_left = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_left]
+##
+##        # Convert both ROIs to HSV color space
+##        hsv_right = cv.cvtColor(roi_right, cv.COLOR_BGR2HSV) if roi_right.size > 0 else None
+##        hsv_left = cv.cvtColor(roi_left, cv.COLOR_BGR2HSV) if roi_left.size > 0 else None
+####        print(hsv_left)
+##        # Define color ranges for red and green in HSV
+##        red_range_1 = [(0, 120, 70), (5, 255, 255)]  # Lower red range
+##        red_range_2 = [(170, 120, 70), (175, 255, 255)]  # Upper red range
+##        green_range = [(50, 40, 40), (70, 255, 255)]  # Green range
+##
+##        # Threshold the HSV images to detect red and green colors
+##        red_mask_right = None
+##        green_mask_left = None
+##        if hsv_right is not None:
+##            red_mask_right_1 = cv.inRange(hsv_right, np.array(red_range_1[0]), np.array(red_range_1[1]))
+##            red_mask_right_2 = cv.inRange(hsv_right, np.array(red_range_2[0]), np.array(red_range_2[1]))
+##            red_mask_right = cv.bitwise_or(red_mask_right_1, red_mask_right_2)  # Combine both red ranges
+##        
+##        if hsv_left is not None:
+##            green_mask_left = cv.inRange(hsv_left, np.array(green_range[0]), np.array(green_range[1]))
+##        # Check if any pixels are detected for red or green color in the right or left regions
+##        if red_mask_right is not None and np.count_nonzero(red_mask_right) > 0:
+##            color = 1 #Red
+####            print("-90.0 / Red")
+##        elif green_mask_left is not None and np.count_nonzero(green_mask_left) > 0:
+##            color = 2 #Green
+####            print("90.0 / Green")
+##        else:
+##            color = 0
+####    cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
+####    cv.imshow("Aruco Detection", cropped_frame)
+####    print(color)
+##    return color
 
-        # Define the region to the right and left of the marker (with an offset)
-        offset = 70  # Pixels to shift the region to the right or left
-        roi_x_min_left = max(0, x_min - offset)
-        roi_x_max_left = x_min
-        roi_x_min_right = x_max
-        roi_x_max_right = min(frame.shape[1], x_max + offset)
-        roi_y_min = y_min
-        roi_y_max = y_max
+def get_color_code(cnrs, frame, ids):
+    # Initialize locked_color on first call
+    if not hasattr(get_color_code, "locked_color"):
+        get_color_code.locked_color = 0
 
-        # Extract the region of interest (ROI) for the right side of the marker (red arrow)
-        roi_right = frame[roi_y_min:roi_y_max, roi_x_min_right:roi_x_max_right]
+    # If no marker, reset lock and return 0
+    if ids is None or len(ids) == 0:
+        get_color_code.locked_color = 0
+        return 0
 
-        # Extract the region of interest (ROI) for the left side of the marker (green arrow)
-        roi_left = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_left]
+    # Process only the first detected marker
+    marker_corners = cnrs[0][0]
+    x_min, y_min = np.min(marker_corners, axis=0).astype(int)
+    x_max, y_max = np.max(marker_corners, axis=0).astype(int)
 
-        # Convert both ROIs to HSV color space
-        hsv_right = cv.cvtColor(roi_right, cv.COLOR_BGR2HSV) if roi_right.size > 0 else None
-        hsv_left = cv.cvtColor(roi_left, cv.COLOR_BGR2HSV) if roi_left.size > 0 else None
-##        print(hsv_left)
-        # Define color ranges for red and green in HSV
-        red_range_1 = [(0, 120, 70), (5, 255, 255)]  # Lower red range
-        red_range_2 = [(170, 120, 70), (175, 255, 255)]  # Upper red range
-        green_range = [(50, 40, 40), (70, 255, 255)]  # Green range
+    offset = 70
+    roi_left  = frame[y_min:y_max, max(0, x_min-offset):x_min]
+    roi_right = frame[y_min:y_max, x_max:min(frame.shape[1], x_max+offset)]
 
-        # Threshold the HSV images to detect red and green colors
-        red_mask_right = None
-        green_mask_left = None
-        if hsv_right is not None:
-            red_mask_right_1 = cv.inRange(hsv_right, np.array(red_range_1[0]), np.array(red_range_1[1]))
-            red_mask_right_2 = cv.inRange(hsv_right, np.array(red_range_2[0]), np.array(red_range_2[1]))
-            red_mask_right = cv.bitwise_or(red_mask_right_1, red_mask_right_2)  # Combine both red ranges
-        
-        if hsv_left is not None:
-            green_mask_left = cv.inRange(hsv_left, np.array(green_range[0]), np.array(green_range[1]))
-        # Check if any pixels are detected for red or green color in the right or left regions
-        if red_mask_right is not None and np.count_nonzero(red_mask_right) > 0:
-            color = 1 #Red
-##            print("-90.0 / Red")
-        elif green_mask_left is not None and np.count_nonzero(green_mask_left) > 0:
-            color = 2 #Green
-##            print("90.0 / Green")
-        else:
-            color = 0
-##    cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
-##    cv.imshow("Aruco Detection", cropped_frame)
-##    print(color)
-    return color
+    # Gaussian blur to reduce noise
+    roi_left_blur  = cv.GaussianBlur(roi_left,  (7, 7), 0) if roi_left.size  > 0 else None
+    roi_right_blur = cv.GaussianBlur(roi_right, (7, 7), 0) if roi_right.size > 0 else None
+
+    hsv_left  = cv.cvtColor(roi_left_blur,  cv.COLOR_BGR2HSV) if roi_left_blur  is not None else None
+    hsv_right = cv.cvtColor(roi_right_blur, cv.COLOR_BGR2HSV) if roi_right_blur is not None else None
+
+    # HSV ranges
+    red_range_1   = [(0, 120, 70),   (5,   255, 255)]
+    red_range_2   = [(170, 120, 70), (179, 255, 255)]
+    green_range   = [(50, 40, 40),   (70,  255, 255)]
+    area_thresh   = 300
+
+    raw_color = 0  # default: no arrow
+
+    # Detect red on the right
+    if hsv_right is not None:
+        r1 = cv.inRange(hsv_right, np.array(red_range_1[0]), np.array(red_range_1[1]))
+        r2 = cv.inRange(hsv_right, np.array(red_range_2[0]), np.array(red_range_2[1]))
+        red_mask = cv.bitwise_or(r1, r2)
+        red_cnts, _ = cv.findContours(red_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        red_area = sum(cv.contourArea(c) for c in red_cnts)
+        if red_area > area_thresh:
+            raw_color = 1
+        # optional debug:
+        if np.count_nonzero(red_mask) > 0:
+            mean_r = cv.mean(hsv_right, mask=red_mask)
+            print("    Red mean HSV:", tuple(map(int, mean_r[:3])))
+
+    # Detect green on the left
+    if hsv_left is not None:
+        gmask = cv.inRange(hsv_left, np.array(green_range[0]), np.array(green_range[1]))
+        green_cnts, _ = cv.findContours(gmask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        green_area = sum(cv.contourArea(c) for c in green_cnts)
+        if green_area > area_thresh:
+            raw_color = 2
+        # optional debug:
+        if np.count_nonzero(gmask) > 0:
+            mean_g = cv.mean(hsv_left, mask=gmask)
+            print("    Green mean HSV:", tuple(map(int, mean_g[:3])))
+
+    # Update lock only on a real arrow detection
+    if raw_color in (1, 2):
+        get_color_code.locked_color = raw_color
+
+    return get_color_code.locked_color
 
 # Run until the user types 'q' to quit
 while True:
