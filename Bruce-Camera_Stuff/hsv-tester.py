@@ -11,6 +11,11 @@ def show_hsv_values(event, x, y, flags, param):
             # Get the HSV values at the clicked point
             h, s, v = hsv_frame[y, x]
             print(f"HSV at ({x}, {y}): H={h}, S={s}, V={v}")
+            redLower = 0
+            redUpper = 0
+            greenLower =  0
+            greenUpper =0
+            whiteLower = 0
 
 # Start video capture
 cap = cv2.VideoCapture(0)
@@ -31,6 +36,7 @@ while True:
 
     # Convert to HSV
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
 
     # Show the webcam feed
     cv2.imshow("Webcam Feed", frame)

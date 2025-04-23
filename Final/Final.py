@@ -13,7 +13,10 @@ import struct
 ''' 
 '''
 # Set the feet from marker to start detecting the color of the arrow
-COLOR_DETECTION_THRESHOLD = 2 
+COLOR_DETECTION_THRESHOLD = 2
+
+# Skip any markers outside of 5 feet
+MARKER_THRESHOLD = 5
 # Arduino I2C address. Verify with i2cdetect 1 in the pi terminal
 ARD_ADDR = 8  
 
@@ -174,7 +177,7 @@ def get_color_code(cnrs, frame, ids):
         # optional debug:
         if np.count_nonzero(red_mask) > 0:
             mean_r = cv.mean(hsv_right, mask=red_mask)
-            print("    Red mean HSV:", tuple(map(int, mean_r[:3])))
+##            print("    Red mean HSV:", tuple(map(int, mean_r[:3])))
 
     # Detect green on the left
     if hsv_left is not None:
@@ -186,7 +189,7 @@ def get_color_code(cnrs, frame, ids):
         # optional debug:
         if np.count_nonzero(gmask) > 0:
             mean_g = cv.mean(hsv_left, mask=gmask)
-            print("    Green mean HSV:", tuple(map(int, mean_g[:3])))
+##            print("    Green mean HSV:", tuple(map(int, mean_g[:3])))
 
     # Update lock only on a real arrow detection
     if raw_color in (1, 2):
@@ -222,6 +225,8 @@ while True:
         # Find distance and angle to marker location
         currDistance = get_distance(rvecs, tvecs) 
         currAngle = get_angle(rvecs, tvecs)
+        if currDistance >= MARKER_THRESHOLD:
+            continue
         
         # Check the distance, start detecting angle within COLOR_DETECTION_THRESHOLD
         if currDistance <= COLOR_DETECTION_THRESHOLD:
