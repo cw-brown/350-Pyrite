@@ -125,10 +125,10 @@ def get_color(cnrs, frame, ids):
             color = 2 #Green
 ##            print("90.0 / Green")
         else:
-            color = 0
+            color = 0 # Whtie
 ##    cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
 ##    cv.imshow("Aruco Detection", cropped_frame)
-    print(color)
+##    print(color)
     return color
 
 ##def get_color_code(cnrs, frame, ids):
@@ -240,8 +240,8 @@ while True:
         markerFound = 0 
         arrow = 0
         # Do we need these if there are no markers found?
-        currAngle = 99.9
-        currDistance = 99.9
+##        currAngle = 99.9
+##        currDistance = 99.9
 
     
 ##    cv.imshow("Aruco Detection", frame)
@@ -255,7 +255,7 @@ while True:
         data = struct.pack('bbff', markerFound, arrow, currDistance, currAngle)
 ##        print(len(data))
 ##        print(list(data))
-        
+##        print(list(data)) 
 ##        data = [struct.pack('<B', markerFound), struct.pack('<B', arrow)] + list(struct.pack('<f', currDistance)) + list(struct.pack('<f', currAngle))
         i2cARD.write_i2c_block_data(ARD_ADDR, 0,list(data))
         
@@ -268,7 +268,6 @@ while True:
 ##        print(list(data))
 ##        i2cARD.write_i2c_block_data(ARD_ADDR, 0, data)
 ##        i2cARD.write_i2c_block_data(ARD_ADDR, 0,data)
-        # Show the (gray) frame
 ##        print("send")
     except: # continue if we get an i2c error
         continue
