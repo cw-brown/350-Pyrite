@@ -20,6 +20,7 @@ def show_hsv_values(event, x, y, flags, param):
 # Start video capture
 cap = cv2.VideoCapture(0)
 
+
 if not cap.isOpened():
     print("Error: Could not access webcam.")
     exit()
@@ -31,7 +32,8 @@ cv2.setMouseCallback("Webcam Feed", show_hsv_values)
 while True:
     ret, frame = cap.read()
     if not ret:
-        print("Error: Failed to read frame.")
+        print("Failed to capture frame")
+        cap.release()
         break
 
     # Convert to HSV
