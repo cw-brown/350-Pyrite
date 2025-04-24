@@ -14,11 +14,12 @@ cap = cv2.VideoCapture(0)
 while True:
 
     ret, frame = cap.read()
-    print(ret)
+
     if not ret:
         print("Failed to capture frame")
         cap.release()
         break
+
     # Convert to Gray scale to find aruco
     grayImage = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -29,6 +30,14 @@ while True:
     # Detect Aruco markers
     corners, ids, rejected = cv2.aruco.detectMarkers(grayImage, dictionary, parameters=parameters)
 
+
+    # lowerLimit, upperLimit = get_limits(color=yellow)
+    redLower = np.array([0, 150, 20], dtype=np.uint8)
+    redUpper = np.array([12, 255, 255], dtype=np.uint8)
+    redLower2 = np.array([170, 180, 20], dtype=np.uint8)
+    redUpper2 = np.array([180, 255, 255], dtype=np.uint8)
+    greenLower = np.array([65, 80, 20], dtype=np.uint8)
+    greenUpper = np.array([90, 255, 255], dtype=np.uint8)
     # rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, dist)
 
     if ids is not None: # We see markers
@@ -51,20 +60,22 @@ while True:
             # Extract the region of interest (ROI) for the right side of the marker (red arrow)
             roi_right = hsvImage[roi_y_min:roi_y_max, roi_x_min_right:roi_x_max_right]
             roi_left = hsvImage[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_left]
-            cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
-            cv2.imshow("Aruco Detection", cropped_frame)
-
+            cropped_frame = hsvImage[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
+            # cv2.imshow("Aruco Detection", cropped_frame)
+            # croppedHSV = cv2.cvtColor(cropped_frame,cv2.COLOR_BGR2HSV)
+            # cv2.imshow("Aruco Detection", croppedHSV)
             # Convert both ROIs to HSV color space
             # hsv_right = cv.cvtColor(roi_right, cv.COLOR_BGR2HSV) if roi_right.size > 0 else None
             # hsv_left = cv.cvtColor(roi_left, cv.COLOR_BGR2HSV) if roi_left.size > 0 else None
+            redMask = cv2.inRange(cropped_frame, redLower, redUpper)
+            redMask2 = cv2.inRange(cropped_frame, redLower2, redUpper2)
+            greenMask = cv2.inRange(cropped_frame, greenLower, greenUpper)
+            cv2.imshow("Red Mask", redMask)
+            cv2.imshow("Red Mask 2", redMask2)
+            cv2.imshow("Green Mask", greenMask)
 
-    # lowerLimit, upperLimit = get_limits(color=yellow)
-    redLower = np.array([0, 150, 20], dtype=np.uint8)
-    redUpper = np.array([12, 255, 255], dtype=np.uint8)
-    redLower2 = np.array([170, 180, 20], dtype=np.uint8)
-    redUpper2 = np.array([180, 255, 255], dtype=np.uint8)
-    greenLower = np.array([65, 80, 20], dtype=np.uint8)
-    greenUpper = np.array([90, 255, 255], dtype=np.uint8)
+
+    
 
     # mask = cv2.inRange(hsvImage, upperLimit, lowerLimit)
 
