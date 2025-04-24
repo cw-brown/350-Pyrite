@@ -1,0 +1,241 @@
+import numpy as np 
+import cv2 as cv
+from time import sleep, time
+import pickle
+import adafruit_character_lcd.character_lcd_rgb_i2c as character_lcd
+import threading
+import queue
+import board
+import smbus2
+import struct
+
+
+''' 
+'''
+# Set the feet from marker to start detecting the color of the arrow, might need to down this
+COLOR_DETECTION_THRESHOLD = 1.5
+
+# Skip any markers outside of 5 feet. Closest marker will be within 5 feet.
+MARKER_THRESHOLD = 5
+
+# Arduino I2C address. Can check with i2cdetect 1
+ARD_ADDR = 8  
+
+# I2C declaration for arduino
+i2cARD = smbus2.SMBus(1)
+
+# Camera Calibration and Distortion Matricies
+with open("cameraMatrix.pkl", "rb") as f:
+    cameraMatrix = pickle.load(f)
+with open("dist.pkl", "rb") as f:
+    dist = pickle.load(f)
+
+# Aruco marker dictionary and detector parameters (6x6 marker 1)
+dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50)
+parameters = cv.aruco.DetectorParameters()
+
+# Open the camera
+cap = cv.VideoCapture(0)
+
+# Angle and distance place holders
+currDistance = 99.9
+lastDistance = 99.9
+currAngle = 99.9
+lastAngle = 99.9
+
+# Marker detection flag (0 = No markers detected, 1 = markers detected)
+markerFound = 0
+
+# Arrow detection flag ( 0 = No arrow, 1 = Right, 2 = Left)
+arrow = 0
+
+# Implement time based sending
+last_update_time = time()
+
+# find the angle off the center axis of rotation. return an angle to 1 decimal point of accuracy      
+def get_angle(rvecs, tvecs):
+##    print("Angle")
+    for i in range(len(ids)):
+        rvec = rvecs[i][0]
+        tvec = tvecs[i][0]
+        
+        # Compute rotation matrix
+        R, _ = cv.Rodrigues(rvec)
+        
+        # Angle between camera axis and marker
+        angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
+        angle = float(round(angle, 1)) # round the angle to 2 decimal points.
+    return angle
+
+# find the distance to the marker retrun a distance of 1 decimal point of accuracy
+def get_distance(rvecs, tvecs):
+##    print("Distance")
+    for i in range(len(ids)):
+        rvec = rvecs[i][0]
+        tvec = tvecs[i][0]
+        distance = float(round(tvec[2]*3.28,1))  # Convert meters to feet
+    return distance
+
+# find the color on the marker
+def get_color(cnrs, frame, ids):
+##    print("color")
+    for i in range(len(ids)):
+        color = None
+        # Get the coordinates of the marker corners
+        marker_corners = cnrs[i][0]
+        x_min, y_min = np.min(marker_corners, axis=0).astype(int)
+        x_max, y_max = np.max(marker_corners, axis=0).astype(int)
+
+        # Crop the image
+        offset = 70  # Pixels to shift the region to the right or left
+        roi_x_min_left = max(0, x_min - offset)
+        roi_x_max_left = x_min
+        roi_x_min_right = x_max
+        roi_x_max_right = min(frame.shape[1], x_max + offset)
+        roi_y_min = y_min
+        roi_y_max = y_max
+
+        # Extract the region of interest (ROI) for the right side of the marker (red arrow)
+        roi_right = frame[roi_y_min:roi_y_max, roi_x_min_right:roi_x_max_right]
+
+        # Extract the region of interest (ROI) for the left side of the marker (green arrow)
+        roi_left = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_left]
+
+        # Convert both ROIs to HSV color space
+        hsv_right = cv.cvtColor(roi_right, cv.COLOR_BGR2HSV) if roi_right.size > 0 else None
+        hsv_left = cv.cvtColor(roi_left, cv.COLOR_BGR2HSV) if roi_left.size > 0 else None
+##        print(hsv_left)
+        # Define color ranges for red and green in HSV. Need an upper and lower for red, since the H value wraps around from 170 ish, to 0
+##        red_range_1 = [(0, 120, 70), (5, 255, 255)]  # Lower red range
+##        red_range_2 = [(170, 120, 70), (175, 255, 255)]  # Upper red range
+##        green_range = [(50, 40, 40), (70, 255, 255)]  # Green range
+        redLower = np.array([0, 150, 70], dtype=np.uint8)
+        redUpper = np.array([10, 255, 255], dtype=np.uint8)
+        redLower2 = np.array([170, 180, 50], dtype=np.uint8)
+        redUpper2 = np.array([180, 255, 255], dtype=np.uint8)
+        greenLower = np.array([70, 80, 40], dtype=np.uint8)
+        greenUpper = np.array([90, 255, 255], dtype=np.uint8)
+
+        red_range_1 = [redLower, redUpper]
+        red_range_2 = [redLower2, redUpper2]
+        green_range = [greenLower, greenUpper]
+
+        # Threshold the HSV images to detect red and green colors
+        red_mask_right = None
+        green_mask_left = None
+        if hsv_right is not None:
+            red_mask_right_1 = cv.inRange(hsv_right, np.array(red_range_1[0]), np.array(red_range_1[1]))
+            red_mask_right_2 = cv.inRange(hsv_right, np.array(red_range_2[0]), np.array(red_range_2[1]))
+            red_mask_right = cv.bitwise_or(red_mask_right_1, red_mask_right_2)  # Combine both red ranges
+        
+        if hsv_left is not None:
+            green_mask_left = cv.inRange(hsv_left, np.array(green_range[0]), np.array(green_range[1]))
+        # Check if any pixels are detected for red or green color in the right or left regions
+        if red_mask_right is not None and np.count_nonzero(red_mask_right) > 0:
+            color = 1 #Red
+##            print("-90.0 / Red")
+        elif green_mask_left is not None and np.count_nonzero(green_mask_left) > 0:
+            color = 2 #Green
+##            print("90.0 / Green")
+        else:
+            color = 0 # Whtie
+##    cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
+##    cv.imshow("Aruco Detection", cropped_frame)
+    print(color)
+    return color
+
+# Run until the user types 'q' to quit
+while True:
+    
+    # Capture the frame
+    ret, frame = cap.read()
+    if not ret:
+        cap.release() # Release the camera if there is an error
+        print("Camera error")
+        continue
+    
+    # Undistort frame
+    frame = cv.undistort(frame, cameraMatrix, dist, None, cameraMatrix)
+    hsvFrame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+##    cv.imshow("HSV Frame", hsvFrame)
+##    cv.imshow("Frame", frame)
+    # Convert to grayscale (This will used to find the marker)
+    gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+    
+    # Detect Aruco markers
+    corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
+    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, dist)
+
+    if ids is not None: # We see markers
+        
+        markerFound = 1
+
+        # Find distance and angle to marker location, skip until the marker is within MARKER_THRESHOLD
+        currDistance = get_distance(rvecs, tvecs) 
+        if currDistance > MARKER_THRESHOLD:
+            try:
+##                print([currDistance, currAngle])
+                data = struct.pack('bbff', 0, 0, 0, 0)
+                i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
+            except:
+                continue
+            continue
+        currAngle = get_angle(rvecs, tvecs)
+        
+        # Check the distance, start detecting angle within COLOR_DETECTION_THRESHOLD
+        if currDistance <= COLOR_DETECTION_THRESHOLD:
+            # Set the turn to the detected arrow
+            arrow = get_color(corners,frame,ids)
+##            currDistance = 1 # tell the robot to not move
+        else:
+            arrow = 0 # set the arrow to 0 if there is no marker
+
+    else: # No markers are found
+        markerFound = 0 
+        arrow = 0
+        # Do we need these if there are no markers found?
+##        currAngle = 99.9
+##        currDistance = 99.9
+
+    
+##    cv.imshow("Aruco Detection", frame)
+    
+    # If for some reason the arrow is not valid, continue to next iteration
+    if arrow < 0 or arrow > 2:
+        continue
+##        print(arrow)
+    # Form the data
+    data = struct.pack('bbff', markerFound, arrow, currDistance, currAngle)
+##        print(len(data))
+##        print(list(data))
+##        print(list(data)) 
+##        data = [struct.pack('<B', markerFound), struct.pack('<B', arrow)] + list(struct.pack('<f', currDistance)) + list(struct.pack('<f', currAngle))
+    # If the data is too long, we need to retry
+    if len(data) != 10:
+        continue
+    # Try to send I2C message, if for some reason it breaks, continue to next iteration.
+    try:
+        i2cARD.write_i2c_block_data(ARD_ADDR, 0,list(data))
+        print("sent")
+    
+    # niceData = [markerFound, arrow, currDistance, currAngle]
+    # Only send a valid 10 byte vector
+    
+
+##        print(list(data))
+##        i2cARD.write_i2c_block_data(ARD_ADDR, 0, data)
+##        i2cARD.write_i2c_block_data(ARD_ADDR, 0,data)
+##        print("send")
+    except: # continue if we get an i2c error
+        continue
+    
+    
+    # Quit when the user hits 'q'
+    if cv.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release camera and close window
+cap.release()
+cv.destroyAllWindows()
+
+print("Done")

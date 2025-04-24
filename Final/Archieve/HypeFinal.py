@@ -117,7 +117,7 @@ def get_color(cnrs, frame, ids):
         redUpper2 = np.array([180, 255, 255], dtype=np.uint8)
         red_range_2 = [redLower2, redUpper2]
         greenLower = np.array([65, 80, 20], dtype=np.uint8)
-        greenUpper = np.array([90, 255, 255], dtype=np.uint8)
+        greenUpper = np.array([85, 255, 255], dtype=np.uint8)
         green_range = [greenLower, greenUpper]
 
         # Threshold the HSV images to detect red and green colors

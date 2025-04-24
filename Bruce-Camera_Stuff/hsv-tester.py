@@ -1,4 +1,4 @@
-import cv2
+qimport cv2
 
 # Global variables to store frame
 frame = None
