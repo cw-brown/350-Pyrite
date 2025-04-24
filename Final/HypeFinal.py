@@ -38,6 +38,8 @@ parameters = cv.aruco.DetectorParameters()
 cap = cv.VideoCapture(0)
 
 # Angle and distance place holders
+currDistance = 99.9
+lastDistance = 99.9
 currAngle = 99.9
 lastAngle = 99.9
 
@@ -104,9 +106,19 @@ def get_color(cnrs, frame, ids):
         hsv_left = cv.cvtColor(roi_left, cv.COLOR_BGR2HSV) if roi_left.size > 0 else None
 ##        print(hsv_left)
         # Define color ranges for red and green in HSV. Need an upper and lower for red, since the H value wraps around from 170 ish, to 0
-        red_range_1 = [(0, 120, 70), (5, 255, 255)]  # Lower red range
-        red_range_2 = [(170, 120, 70), (175, 255, 255)]  # Upper red range
-        green_range = [(50, 40, 40), (70, 255, 255)]  # Green range
+##        red_range_1 = [(0, 120, 70), (5, 255, 255)]  # Lower red range
+##        red_range_2 = [(170, 120, 70), (175, 255, 255)]  # Upper red range
+##        green_range = [(50, 40, 40), (70, 255, 255)]  # Green range
+
+        redLower = np.array([0, 150, 20], dtype=np.uint8)
+        redUpper = np.array([12, 255, 255], dtype=np.uint8)
+        red_range_1 = [redLower, redUpper]
+        redLower2 = np.array([170, 180, 20], dtype=np.uint8)
+        redUpper2 = np.array([180, 255, 255], dtype=np.uint8)
+        red_range_2 = [redLower2, redUpper2]
+        greenLower = np.array([65, 80, 20], dtype=np.uint8)
+        greenUpper = np.array([90, 255, 255], dtype=np.uint8)
+        green_range = [greenLower, greenUpper]
 
         # Threshold the HSV images to detect red and green colors
         red_mask_right = None
@@ -129,7 +141,7 @@ def get_color(cnrs, frame, ids):
             color = 0 # Whtie
 ##    cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
 ##    cv.imshow("Aruco Detection", cropped_frame)
-##    print(color)
+    print(color)
     return color
 
 # Run until the user types 'q' to quit

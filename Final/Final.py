@@ -251,7 +251,7 @@ while True:
 ##        print(message[1])
         if arrow < 0 or arrow > 2:
             continue
-##        print(arrow)
+        print(arrow)
         data = struct.pack('bbff', markerFound, arrow, currDistance, currAngle)
 ##        print(len(data))
 ##        print(list(data))
