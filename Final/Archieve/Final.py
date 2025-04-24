@@ -261,6 +261,7 @@ while True:
         
         niceData = [markerFound, arrow, currDistance, currAngle]
         # Only send a valid 10 byte vector
+        print(len(data))
         if len(data) != 10:
 ##            print("Skip")
             continue

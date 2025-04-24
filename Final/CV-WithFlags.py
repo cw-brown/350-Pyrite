@@ -141,12 +141,11 @@ def get_color(cnrs, frame, ids):
             color = 0 # Whtie
 ##    cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
 ##    cv.imshow("Aruco Detection", cropped_frame)
-    print(color)
+##    print(color)
     return color
 
 # Run until the user types 'q' to quit
 while True:
-    
     # Capture the frame
     ret, frame = cap.read()
     if not ret:
@@ -173,13 +172,17 @@ while True:
         # Find distance and angle to marker location, skip until the marker is within MARKER_THRESHOLD
         currDistance = get_distance(rvecs, tvecs) 
         if currDistance > MARKER_THRESHOLD:
+            
             try:
 ##                print([currDistance, currAngle])
-                data = struct.pack('bbff', 0, 0, 0, 0)
+##                data = struct.pack('bbff', markerFound, arrow, currDistance, currAngle)
                 i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))
+##                print("Sent")
+
             except:
                 continue
             continue
+        
         currAngle = get_angle(rvecs, tvecs)
         
         # Check the distance, start detecting angle within COLOR_DETECTION_THRESHOLD
@@ -201,22 +204,26 @@ while True:
 ##    cv.imshow("Aruco Detection", frame)
     
     # If for some reason the arrow is not valid, continue to next iteration
+    
     if arrow < 0 or arrow > 2:
         continue
 ##        print(arrow)
     # Form the data
+    
     data = struct.pack('bbff', markerFound, arrow, currDistance, currAngle)
 ##        print(len(data))
 ##        print(list(data))
 ##        print(list(data)) 
 ##        data = [struct.pack('<B', markerFound), struct.pack('<B', arrow)] + list(struct.pack('<f', currDistance)) + list(struct.pack('<f', currAngle))
     # If the data is too long, we need to retry
-    if len(data) != 10:
-        continue
+##    print(len(data))
+##    if len(data) != 10:
+##        continue
+    
     # Try to send I2C message, if for some reason it breaks, continue to next iteration.
     try:
         i2cARD.write_i2c_block_data(ARD_ADDR, 0,list(data))
-        print("sent")
+##        print("sent")
     
     # niceData = [markerFound, arrow, currDistance, currAngle]
     # Only send a valid 10 byte vector
