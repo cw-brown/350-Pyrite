@@ -285,7 +285,7 @@ void loop() {
   deltaV = errorPhiVel*KpPhiVel;
   voltage[0] = (Vbar+deltaV)/2;
   voltage[1] = (Vbar-deltaV)/2;
-  if(abs(voltage[0])>8){
+  if(abs(voltage[0])>6){
     voltage[0] = oldVoltage[0];
     voltage[1] = oldVoltage[1];
   }
