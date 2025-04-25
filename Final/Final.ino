@@ -10,11 +10,14 @@ float oldMPhi = markerPhi;
 float markerRho = 0.0;
 float oldMRho = markerRho;
 bool f_detected = false;  // Flag for object detection
+bool oldDetect = f_detected;
 const int BUFFER_SIZE = 4; 
 byte buffer[BUFFER_SIZE]; 
 bool doTurn = true;  // hardcoded, to go form STOP to ROTATE 
-bool atMarker = false;  // to go from MOVE_FWD to STOP ROTATE 
-volatile int arrow = 2; // 0=left, 1=right, 2=no arrow
+bool atMarker = false;  // to go from MOVE_FWD to STOP ROTATE
+volatile int f_arrow = 2;
+volatile int oldArrow = f_arrow;
+bool f_stop = false;
 
 // Pin Definitions
 const uint8_t M_ENABLE = 4; // So motors are on
@@ -60,7 +63,7 @@ float errorPhi = 0;
 float derivativePhi = 0;
 float errorPhiInitial = 0;
 float integralPhi = 0;
-float KpPhi = 50;
+float KpPhi = 15;
 float KdPhi = 5;
 float KiPhi = 3.75;
 float phiVel = 0;
@@ -154,9 +157,9 @@ void loop() {
       break;
 
     case ROTATE:  // Align to desiredPhi
-      KpPhi = 50;
-      KdPhi = 5;
-      KiPhi = 3.75;
+      // KiPhi = 3.75;
+      // KpPhi = 15;
+      // KdPhi = 5;
       desiredRhoVel = 0; // we want to be stationary around axle center axis
       desiredRho = rho;
       //Serial.println("Turning");
@@ -179,9 +182,9 @@ void loop() {
       break;
     
     case MOVE_FWD:  // Move forward to desiredRho
-      KiPhi = 0.75;
-      KpPhi = 50;
-      KdPhi = 5;
+      // KiPhi = 3.75;
+      // KpPhi = 50;
+      // KdPhi = 5;
       if(abs(markerPhi != 90)){
         if(abs(markerPhi > 1)){
           desiredPhi = phi - markerPhi * (PI / 180);
@@ -189,8 +192,8 @@ void loop() {
       }
       desiredRho = rho + markerRho;
       Serial.println("Move Fwd");
-      Serial.println(rho);
-      Serial.println(desiredRho);
+      // Serial.println(rho);
+      // Serial.println(desiredRho);
       if (rho >= desiredRho + (-1)) {
         atMarker = true;
         mode = STOP;
@@ -201,26 +204,25 @@ void loop() {
       analogWrite(M_PWM[0], 0);
       analogWrite(M_PWM[1], 0);
       //KdPhi = 45;
-      if (atMarker == true && doTurn == true) {
-      Serial.println("in turn if");
-        if (arrow == 0) { // left
+      if (atMarker && f_arrow!=0) {
+        if (f_arrow == 2) { // left
           Serial.println("Left turn");
-          delay(2000);
-          desiredPhi = phi + (PI / 2);
-          mode = ROTATE;
-        }
-        else if (arrow == 1) { // right
-          Serial.println("Right turn");
           delay(2000);
           desiredPhi = phi - (PI / 2);
           mode = ROTATE;
         }
-        else { // no turn comand from pi
-          //Serial.println("Pause");
-          analogWrite(M_PWM[0], 0);
-          analogWrite(M_PWM[1], 0);
-          break;
+        else if (f_arrow == 1) { // right
+          Serial.println("Right turn");
+          delay(2000);
+          desiredPhi = phi + (PI / 2);
+          mode = ROTATE;
         }
+        // else { // no turn comand from pi
+        //   //Serial.println("Pause");
+        //   analogWrite(M_PWM[0], 0);
+        //   analogWrite(M_PWM[1], 0);
+        // }
+        atMarker = false;
       }
       else {
         //Serial.println("Stop");
@@ -316,6 +318,11 @@ void loop() {
 void receiveData (){
   while (Wire.available()) {
     Wire.read(); // discard first byte (offset)
+    f_detected = Wire.read();
+    f_arrow = Wire.read();
+    Wire.read(); // discard next byte
+    Wire.read(); // discard next byte
+
     // need to read four bytes and convert into float
     for (int i = 0; i < BUFFER_SIZE; i++) {
         buffer[i] = Wire.read();
@@ -327,25 +334,55 @@ void receiveData (){
     }
     memcpy(&markerPhi, buffer, sizeof(markerPhi));
 
-    if (abs(markerPhi) <= 91.0f && markerRho <=10.0f) {
-      f_detected = true;  // No marker detected
-    } else {
-      f_detected = false;   // Marker detected
+    // if (abs(markerPhi) <= 91.0f && markerRho <=10.0f) {
+    //   f_detected = true;  // Marker detected
+    // } else {
+    //   f_detected = false;   // No marker detected
+    //   markerPhi = oldMPhi;
+    //   markerRho = oldMRho;
+    // }
+
+    if (f_arrow < 0 || f_arrow > 2){
+      f_arrow = oldArrow;
+      f_detected = oldDetect;
+    }
+
+    if (abs(markerPhi) <= 91.0f && abs(markerRho) <=10.0f){
+    }else{
       markerPhi = oldMPhi;
       markerRho = oldMRho;
     }
 
-    if (markerPhi == -90){
-      arrow = 0;
-    }else if (markerPhi == 90){
-      arrow = 1;
-    }else{
-      arrow = 2;
+    if(markerRho <= 0.1f){
+      markerPhi = oldMPhi;
+      markerRho = oldMRho;
+      f_arrow = oldArrow;
+      f_detected = oldDetect;
+    }
+
+    // if (markerPhi == -90){
+    //   arrow = 0;
+    // }else if (markerPhi == 90){
+    //   arrow = 1;
+    // }else{
+    //   arrow = 2;
+    // }
+
+    if(markerPhi == -50){
+      f_stop = true;
     }
     
     //markerPhi = -markerPhi;
-    //Serial.println(markerRho);
-    //Serial.println(markerPhi);
+    Serial.print(f_detected);
+    Serial.print("\t");
+    Serial.print(f_arrow);
+    Serial.print("\t");
+    Serial.print(markerRho);
+    Serial.print("\t");
+    Serial.print(markerPhi);
+    Serial.println("\t");
+    oldArrow = f_arrow;
+    oldDetect = f_detected;
     oldMPhi = markerPhi;
     oldMRho = markerRho;
   }
