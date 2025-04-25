@@ -253,7 +253,7 @@ while True:
     
     # Convert to grayscale
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    
+##    cv.imshow("Image", frame)
     # Detect Aruco markers
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
 
@@ -265,7 +265,7 @@ while True:
         if currDistance > DETECTION_THRESH:
             currDistance = 99.9
             try:
-                print([currDistance, currAngle])
+##                print([currDistance, currAngle])
                 i2cARD.write_i2c_block_data(ARD_ADDR, 0, [currDistance, currAngle])  
             except:
                 continue
@@ -298,9 +298,9 @@ while True:
 
     # Try to send data, if I2C error, continue to next iteration
     data = struct.pack('ff', message[0], message[1])
-    print(message)
+    ## print(message)
     try:
-        i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))   
+        i2cARD.write_i2c_block_data(ARD_ADDR, 1, list(data))   
     except:
         continue
 
