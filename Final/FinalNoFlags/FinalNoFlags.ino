@@ -15,6 +15,7 @@ byte buffer[BUFFER_SIZE];
 bool atMarker = false;  // to go from MOVE_FWD to STOP ROTATE 
 volatile int arrow = 2; // 0=left, 1=right, 2=no arrow
 bool f_stop = false;
+int turn_dir = 1; // 1 right, -1 left
 
 // Pin Definitions
 const uint8_t M_ENABLE = 4; // So motors are on
@@ -141,7 +142,7 @@ void loop() {
   switch (mode) {
     case SEEK:  // turn until finding marker
       if (!f_detected) {
-        desiredPhi += .25 * PI / 180;
+        desiredPhi += .25 * PI / 180 * turn_dir;
         //Serial.println("Searching");
       }
       else if (f_detected) {
@@ -158,7 +159,7 @@ void loop() {
       KpPhiVel = 2;
       KpPhi = 50;
       KdPhi = 5;
-      KiPhi = 3.75;
+      KiPhi = .375;
       desiredRhoVel = 0; // we want to be stationary around axle center axis
       desiredRho = rho;
       //Serial.println("Turning");
@@ -183,13 +184,9 @@ void loop() {
     case MOVE_FWD:  // Move forward to desiredRho
       KpPhiVel = 2;
       KiPhi = .375;
-      KpPhi = 5;
+      KpPhi = .5;
       KdPhi = 5;
-      if(abs(markerPhi != 90)){
-        if(abs(markerPhi > 1)){
-          desiredPhi = phi - markerPhi * (PI / 180);
-        }
-      }
+      desiredPhi = phi - markerPhi * (PI / 180);
       desiredRho = rho + markerRho;
       // Serial.println("Move Fwd");
       // Serial.println(rho);
@@ -211,12 +208,16 @@ void loop() {
           delay(2000);
           desiredPhi = phi + (PI / 2);
           mode = ROTATE;
+          // turn_dir = -1;
+          // mode = SEEK;
         }
         else if (arrow == 1) { // right
           Serial.println("Right turn");
           delay(2000);
           desiredPhi = phi - (PI / 2);
           mode = ROTATE;
+          // turn_dir = 1;
+          // mode = SEEK;
         }
         else { // no turn comand from pi
           //Serial.println("Pause");
@@ -285,7 +286,7 @@ void loop() {
   deltaV = errorPhiVel*KpPhiVel;
   voltage[0] = (Vbar+deltaV)/2;
   voltage[1] = (Vbar-deltaV)/2;
-  if(abs(voltage[0])>6){
+  if(abs(voltage[0])>10){
     voltage[0] = oldVoltage[0];
     voltage[1] = oldVoltage[1];
   }
