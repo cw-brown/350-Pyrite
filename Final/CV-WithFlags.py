@@ -63,8 +63,8 @@ def get_angle(rvecs, tvecs):
         R, _ = cv.Rodrigues(rvec)
         
         # Angle between camera axis and marker
-        angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
-        angle = float(round(angle, 1)) # round the angle to 2 decimal points.
+        angles = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
+        angle = float(round(angles, 1)) # round the angle to 2 decimal points.
     return angle
 
 # find the distance to the marker retrun a distance of 1 decimal point of accuracy
@@ -170,7 +170,9 @@ while True:
         markerFound = 1
 
         # Find distance and angle to marker location, skip until the marker is within MARKER_THRESHOLD
-        currDistance = get_distance(rvecs, tvecs) 
+        currDistance = get_distance(rvecs, tvecs)
+        if currDistance <= 0:
+            continue
         if currDistance > MARKER_THRESHOLD:
             
             try:
@@ -221,8 +223,16 @@ while True:
 ##        continue
     
     # Try to send I2C message, if for some reason it breaks, continue to next iteration.
+    if markerFound < 0.00 or markerFound > 1.00:
+        continue
+    if arrow < 0.00 or arrow > 2.00:
+        continue
+    if currDistance <= 0:
+        currDistance = 1
+        continue
     try:
         i2cARD.write_i2c_block_data(ARD_ADDR, 0,list(data))
+        sleep(0.2)
 ##        print("sent")
     
     # niceData = [markerFound, arrow, currDistance, currAngle]
