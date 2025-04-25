@@ -9,17 +9,6 @@ sends a command to the arduino to where the wheels should turn. Based on
 which quadrant of the camera the marker is detected on the wheel will turn as
 follows:
 
-    Qudrant  -   Wheel Location [left wheel, right wheel]
-    ----------------------------------------------------
-      NE     -   [0,0]
-      NW     -   [0,1]
-      SE     -   [1,0]
-      SW     -   [1,1]
-
-To increase/decrease the lag adjustment of the frame rate is possible
-The program runs optimally displaying every thrid frame, since the processing
-power of the pi is not anything special.
-
 
 The I2C communication protocol is used to send a string to the arduino to display the
 desired location of the left wheel and right wheel, and to send a byte to the

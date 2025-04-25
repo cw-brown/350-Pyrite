@@ -41,6 +41,9 @@ and the arduino:
     SDA       -        A4
 
 '''
+
+COLOR_THRESH = 1
+DETECTION_THRESH = 5
 # define the I2C Address of Arduino
 ARD_ADDR = 8  
 
@@ -98,7 +101,67 @@ def get_distance(cnrs):
     return distance
 
 # find the color on the marker
+##def get_color(cnrs, frame, ids):
+##    for i in range(len(ids)):
+##        color = None
+##        # Get the coordinates of the marker corners
+##        marker_corners = cnrs[i][0]
+##        x_min, y_min = np.min(marker_corners, axis=0).astype(int)
+##        x_max, y_max = np.max(marker_corners, axis=0).astype(int)
+##
+##        # Define the region to the right and left of the marker (with an offset)
+##        offset = 70  # Pixels to shift the region to the right or left
+##        roi_x_min_left = max(0, x_min - offset)
+##        roi_x_max_left = x_min
+##        roi_x_min_right = x_max
+##        roi_x_max_right = min(frame.shape[1], x_max + offset)
+##        roi_y_min = y_min
+##        roi_y_max = y_max
+##
+##        # Extract the region of interest (ROI) for the right side of the marker (red arrow)
+##        roi_right = frame[roi_y_min:roi_y_max, roi_x_min_right:roi_x_max_right]
+##
+##        # Extract the region of interest (ROI) for the left side of the marker (green arrow)
+##        roi_left = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_left]
+##
+##        # Convert both ROIs to HSV color space
+##        hsv_right = cv.cvtColor(roi_right, cv.COLOR_BGR2HSV) if roi_right.size > 0 else None
+##        hsv_left = cv.cvtColor(roi_left, cv.COLOR_BGR2HSV) if roi_left.size > 0 else None
+##
+##        # Define color ranges for red and green in HSV
+##        red_range_1 = [(0, 150, 70), (10, 255, 255)]  # Lower red range
+##        red_range_2 = [(170, 180, 50), (180, 255, 255)]  # Upper red range
+##        green_range = [(70, 80, 50), (85, 255, 255)]  # Green range
+##
+####        redLower = np.array([0, 150, 70], dtype=np.uint8)
+####        redUpper = np.array([10, 255, 255], dtype=np.uint8)
+####        redLower2 = np.array([170, 180, 50], dtype=np.uint8)
+####        redUpper2 = np.array([180, 255, 255], dtype=np.uint8)
+####        greenLower = np.array([70, 80, 50], dtype=np.uint8)
+####        greenUpper = np.array([85, 255, 255], dtype=np.uint8)
+##
+##        # Threshold the HSV images to detect red and green colors
+##        red_mask_right = None
+##        green_mask_left = None
+##        if hsv_right is not None:
+##            red_mask_right_1 = cv.inRange(hsv_right, np.array(red_range_1[0]), np.array(red_range_1[1]))
+##            red_mask_right_2 = cv.inRange(hsv_right, np.array(red_range_2[0]), np.array(red_range_2[1]))
+##            red_mask_right = cv.bitwise_or(red_mask_right_1, red_mask_right_2)  # Combine both red ranges
+##        
+##        if hsv_left is not None:
+##            green_mask_left = cv.inRange(hsv_left, np.array(green_range[0]), np.array(green_range[1]))
+##        
+##        # Check if any pixels are detected for red or green color in the right or left regions
+##        if red_mask_right is not None and np.count_nonzero(red_mask_right) > 0:
+##            color = -90.0 #Red
+##
+##        elif green_mask_left is not None and np.count_nonzero(green_mask_left) > 0:
+##            color = 90.0 #Green
+##    print(color)
+##    return color
+
 def get_color(cnrs, frame, ids):
+##    print("color")
     for i in range(len(ids)):
         color = None
         # Get the coordinates of the marker corners
@@ -106,7 +169,7 @@ def get_color(cnrs, frame, ids):
         x_min, y_min = np.min(marker_corners, axis=0).astype(int)
         x_max, y_max = np.max(marker_corners, axis=0).astype(int)
 
-        # Define the region to the right and left of the marker (with an offset)
+        # Crop the image
         offset = 70  # Pixels to shift the region to the right or left
         roi_x_min_left = max(0, x_min - offset)
         roi_x_max_left = x_min
@@ -124,11 +187,33 @@ def get_color(cnrs, frame, ids):
         # Convert both ROIs to HSV color space
         hsv_right = cv.cvtColor(roi_right, cv.COLOR_BGR2HSV) if roi_right.size > 0 else None
         hsv_left = cv.cvtColor(roi_left, cv.COLOR_BGR2HSV) if roi_left.size > 0 else None
+##        print(hsv_left)
+        # Define color ranges for red and green in HSV. Need an upper and lower for red, since the H value wraps around from 170 ish, to 0
+##        red_range_1 = [(0, 120, 70), (5, 255, 255)]  # Lower red range
+##        red_range_2 = [(170, 120, 70), (175, 255, 255)]  # Upper red range
+##        green_range = [(50, 40, 40), (70, 255, 255)]  # Green range
 
-        # Define color ranges for red and green in HSV
-        red_range_1 = [(0, 120, 70), (5, 255, 255)]  # Lower red range
-        red_range_2 = [(170, 120, 70), (175, 255, 255)]  # Upper red range
-        green_range = [(50, 40, 40), (70, 255, 255)]  # Green range
+##        redLower = np.array([0, 150, 20], dtype=np.uint8)
+##        redUpper = np.array([12, 255, 255], dtype=np.uint8)
+##        red_range_1 = [redLower, redUpper]
+##        redLower2 = np.array([170, 180, 20], dtype=np.uint8)
+##        redUpper2 = np.array([180, 255, 255], dtype=np.uint8)
+##        red_range_2 = [redLower2, redUpper2]
+##        greenLower = np.array([65, 80, 20], dtype=np.uint8)
+##        greenUpper = np.array([85, 255, 255], dtype=np.uint8)
+##        green_range = [greenLower, greenUpper]
+
+        redLower = np.array([0, 150, 70], dtype=np.uint8)
+        redUpper = np.array([10, 255, 255], dtype=np.uint8)
+        redLower2 = np.array([170, 180, 50], dtype=np.uint8)
+        redUpper2 = np.array([180, 255, 255], dtype=np.uint8)
+        greenLower = np.array([70, 80, 40], dtype=np.uint8)
+        greenUpper = np.array([90, 255, 255], dtype=np.uint8)
+
+        
+        red_range_1 = [redLower, redUpper]
+        red_range_2 = [redLower2, redUpper2]
+        green_range = [greenLower, greenUpper]
 
         # Threshold the HSV images to detect red and green colors
         red_mask_right = None
@@ -140,14 +225,18 @@ def get_color(cnrs, frame, ids):
         
         if hsv_left is not None:
             green_mask_left = cv.inRange(hsv_left, np.array(green_range[0]), np.array(green_range[1]))
-        
         # Check if any pixels are detected for red or green color in the right or left regions
         if red_mask_right is not None and np.count_nonzero(red_mask_right) > 0:
-            color = -90.0 #Red
-
+            color = -90 #Red
+##            print("-90.0 / Red")
         elif green_mask_left is not None and np.count_nonzero(green_mask_left) > 0:
-            color = 90.0 #Green
-
+            color = 90 #Green
+##            print("90.0 / Green")
+        else:
+            color = -50 # Whtie
+##    cropped_frame = frame[roi_y_min:roi_y_max, roi_x_min_left:roi_x_max_right]
+##    cv.imshow("Aruco Detection", cropped_frame)
+##    print(color)
     return color
 
 # Run until the user types 'q' to quit
@@ -168,14 +257,15 @@ while True:
     # Detect Aruco markers
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
 
-    currDistance = 9.9
+    currDistance = 99.9
     currAngle = 99.9
     if ids is not None: # if we find markers
         
         currDistance = get_distance(corners) # find the distance, use to determine if we need to send an angle
-
+        if currDistance > DETECTION_THRESH:
+            continue
         # Check the distance ( > 1 or <= 1), only detect color within 1 foot, and detect angle outside 1 foot
-        if currDistance <= 1.7:  
+        if currDistance <= COLOR_THRESH:  
             currAngle = get_color(corners,frame,ids) # Set the angle to the detected color
         else:
             currAngle = get_angle(corners) # find the angle
@@ -183,27 +273,28 @@ while True:
     
         message = [currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
    
-        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance):
-            if currAngle != lastAngle:
-                lastAngle = currAngle # update the angle
-            if currDistance != lastDistance:
-                lastDistance = currDistance # update the distance
-            if currColor != lastColor:
-                lastColor = currColor # update the color
+##        if time() - last_update_time >= 0.5 and (currAngle != lastAngle or currDistance != lastDistance):
+##            if currAngle != lastAngle:
+##                lastAngle = currAngle # update the angle
+##            if currDistance != lastDistance:
+##                lastDistance = currDistance # update the distance
+##            if currColor != lastColor:
+##                lastColor = currColor # update the color
 
     else:
         currAngle = 99.9
         currDistance = 99.9
-        if currDistance != lastDistance or currAngle != lastAngle:
-            lastAngle = currAngle
-            lastDistance = currDistance  
+##        if currDistance != lastDistance or currAngle != lastAngle:
+##            lastAngle = currAngle
+##            lastDistance = currDistance  
             
-        currColor = 1 # place holder value
+##        currColor = 1 # place holder value
         message = [currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
 
-    # Try to send data, if I2C error, continue to next iteration    
+    # Try to send data, if I2C error, continue to next iteration
+    data = struct.pack('ff', message[0], message[1])
+    print(message)
     try:
-        data = struct.pack('ff', message[0], message[1])
         i2cARD.write_i2c_block_data(ARD_ADDR, 0, list(data))   
     except:
         continue
