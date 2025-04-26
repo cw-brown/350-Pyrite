@@ -22,35 +22,32 @@ while True:
     corners, ids, _ = detector.detectMarkers(frame)
 
     if ids is not None:
-        distances = []  # List to store distances of markers
-        # Calculate distances for all markers
-        for i in range(len(ids)):
-            rvec, tvec, _ = aruco.estimatePoseSingleMarkers(corners[i], marker_length, camera_matrix, dist_coeffs)
-            distance_meters = tvec[0][0][2]  # Distance in meters
-            distances.append(distance_meters)
-
+        # Estimate pose for all detected markers
+        rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.05, camera_matrix, dist_coeffs)
+        
+        # Calculate the distance for each marker (in feet)
+        distances = [float(round(tvec[0][2] * 3.28084, 1)) for tvec in tvecs]
+        
         # Find the index of the closest marker
         closest_idx = np.argmin(distances)
         
-        # Draw markers
-        for i in range(len(ids)):
-            distance_meters = distances[i]
-            distance_feet = distance_meters * 3.28084  # Convert meters to feet
-            c = corners[i][0]
-            
-            # Set color based on closest marker
-            if i == closest_idx:
-                color = (0, 255, 0)  # Green for closest
-            else:
-                color = (0, 0, 255)  # Red for others
+        # Access the closest marker directly
+        closest_corners = corners[closest_idx]
+        closest_id = ids[closest_idx][0]
+        closest_distance = distances[closest_idx]
+        
+        # Draw the closest marker (green)
+        color = (0, 255, 0)  # Green for the closest marker
+        c = closest_corners[0]
+        
+        # Display the distance in feet for the closest marker
+        cv2.putText(frame, f"D:{closest_distance:.2f}ft", 
+                    (int(c[0][0]), int(c[0][1]) - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-            # Display the ID and distance in feet
-            cv2.putText(frame, f"ID:{ids[i][0]} D:{distance_feet:.2f}ft", 
-                        (int(c[0][0]), int(c[0][1]) - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
-            # Draw the detected markers with the specified color
-            aruco.drawDetectedMarkers(frame, corners, ids, borderColor=color)
+        # Draw the detected marker with the specified color
+        # Ensure the 'ids' argument is a numpy array
+        aruco.drawDetectedMarkers(frame, [closest_corners], np.array([closest_id]), borderColor=color)
 
     cv2.imshow('ArUco Detection', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
