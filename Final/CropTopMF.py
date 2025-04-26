@@ -25,6 +25,30 @@ with open("dist.pkl", "rb") as f:
 dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_6X6_50)
 parameters = cv.aruco.DetectorParameters()
 
+def get_angle(cnrs):
+    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
+        
+    for i in range(len(ids)):
+        rvec = rvecs[i][0]
+        tvec = tvecs[i][0]
+        
+        # Compute rotation matrix
+        R, _ = cv.Rodrigues(rvec)
+        
+        # Angle between camera axis and marker
+        angle = -1*np.degrees(np.arctan2(tvec[0], tvec[2]))
+        angle = float(round(angle, 1)) # round the angle to 2 decimal points. 
+    return angle
+
+# find the distance to the marker retrun a distance of 1 decimal point of accuracy
+def get_distance(cnrs):
+    rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(cnrs, 0.05, cameraMatrix, dist)
+    for i in range(len(ids)):
+        rvec = rvecs[i][0]
+        tvec = tvecs[i][0]
+        distance = float(round(tvec[2]*3.28,1))  # Convert meters to feet
+    return distance
+
 def get_color(cnrs, frame):
     color = None
     marker_corners = cnrs[0]
@@ -77,19 +101,21 @@ while True:
         rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, dist)
         distances = [float(round(tvec[0][2] * 3.28, 1)) for tvec in tvecs]
         min_distance_index = np.argmin(distances)
-        currDistance = distances[min_distance_index]
+        # currDistance = distances[min_distance_index]
+        closest_coreners = corners[min_distance_index]
+
+        currDistance = get_distance(corners[min_distance_index]) # find the distance, use to determine if we need to send an angle
         
         if currDistance > DETECTION_THRESH:
             currDistance = 99.9
             currAngle = 99.9
             try:
-                i2cARD.write_i2c_block_data(ARD_ADDR, 0, [currDistance, currAngle])
+                i2cARD.write_i2c_block_data(ARD_ADDR, 0, closest_coreners)
             except:
                 continue
         else:
-            closest_corners = [corners[min_distance_index]]
             if currDistance <= COLOR_THRESH:
-                currAngle = get_color(closest_corners, frame)
+                currAngle = get_color(closest_coreners, frame)
             else:
                 rvec = rvecs[min_distance_index][0]
                 tvec = tvecs[min_distance_index][0]
