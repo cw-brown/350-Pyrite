@@ -3,7 +3,7 @@ import cv2 as cv
 import pickle
 import struct
 import smbus2
-
+print("hi")
 COLOR_THRESH = 1
 DETECTION_THRESH = 5
 ARD_ADDR = 8  

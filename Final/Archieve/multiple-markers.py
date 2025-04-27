@@ -5,7 +5,7 @@ import numpy as np
 cap = cv2.VideoCapture(0)
 aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
 detector = aruco.ArucoDetector(aruco_dict, aruco.DetectorParameters())
-
+print("hi")
 marker_length = 0.05  # meters (adjust according to your marker size)
 frame_width = int(cap.get(3))
 frame_height = int(cap.get(4))
