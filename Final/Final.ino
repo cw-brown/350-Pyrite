@@ -1,3 +1,47 @@
+/*
+-----------------------------------------------
+Robot Navigation Code
+-----------------------------------------------
+
+Description:
+This Arduino program controls a two-wheeled differential drive robot that navigates using visual markers detected by a Raspberry Pi camera. 
+The Arduino communicates with the Pi over I2C to receive marker location data (distance and angle). 
+It uses a finite state machine (FSM) with PID controllers to seek, align, move toward, and stop at the markers, with turn commands when needed.
+Encoders are used to track wheel motion and compute robot position (rho, phi).
+
+Hardware Setup:
+- Arduino board (Uno)
+- Raspberry Pi (I2C communication to Arduino)
+
+Motors & Encoders:
+Left Encoder:
+  - Channel A → Pin 2
+  - Channel B → Pin 5
+Right Encoder:
+  - Channel A → Pin 3
+  - Channel B → Pin 6
+
+Left Motor:
+  - Direction → Pin 7
+  - PWM → Pin 9
+Right Motor:
+  - Direction → Pin 8
+  - PWM → Pin 10
+
+Motor Enable Pin:
+  - Enable Motors → Pin 4
+
+Other Connections:
+- Raspberry Pi sends marker data via I2C (rho, phi floats encoded in bytes)
+
+Dependencies:
+- Encoder.h library (Paul Stoffregen)
+- Wire.h library (Arduino built-in for I2C)
+
+Author: Parker Anderson, Caleb Brown
+Date: 4/28/25
+*/
+
 #include <Arduino.h> // for PI
 #include <Encoder.h> // for reading wheel encoders
 #include <Wire.h> // for communicating with Rasberry Pi
@@ -152,10 +196,8 @@ void loop() {
         Serial.println("Marker Found");
         analogWrite(M_PWM[0], 0);
         analogWrite(M_PWM[1], 0);
-        // delay(2000);
         desiredPhi = phi - markerPhi * (PI / 180);
         mode = ROTATE;
-        //reset();
       }
       break;
 
@@ -215,14 +257,12 @@ void loop() {
           delay(2000);
           desiredPhi = phi + (PI / 2);
           mode = ROTATE;
-          //reset();
         }
         else if (arrow == 1) { // left
           Serial.println("Left turn");
           delay(2000);
           desiredPhi = phi - (PI / 2);
           mode = ROTATE;
-          //reset();
         }
         else { // no turn comand from pi
           //Serial.println("Pause");
@@ -248,14 +288,8 @@ void loop() {
     integralPhi += errorPhi*((float)(ts/1000));
     desiredPhiVel = KpPhi*errorPhi + KdPhi*derivativePhi + KiPhi*integralPhi;
     // limit set angular speed
-    if(mode == MOVE_FWD){
-      if(abs(desiredPhiVel) > 10){
-        desiredPhiVel = 10*desiredPhiVel/abs(desiredPhiVel);
-      }
-    }else if(mode == ROTATE){
-      if(abs(desiredPhiVel) > 10){
-        desiredPhiVel = 10*desiredPhiVel/abs(desiredPhiVel);
-      }
+    if(abs(desiredPhiVel) > 10){
+      desiredPhiVel = 10*desiredPhiVel/abs(desiredPhiVel);
     }
 
     // PID control for distance
@@ -307,9 +341,6 @@ void loop() {
   }
   oldVoltage[0] = voltage[0];
   oldVoltage[1] = voltage[1];
-  // Serial.print(voltage[0]);
-  // Serial.print("\t");
-  // Serial.println(voltage[1]);
 
   if(mode!=STOP){
     for (int i = 0; i < 2; i++) {
@@ -391,10 +422,10 @@ void receiveData (){
 
     // Serial.print(oldMRho);
     // Serial.print("\t");
-    Serial.print(markerRho);
-    Serial.print("\t");
+    //Serial.print(markerRho);
+    //Serial.print("\t");
     // Serial.print(oldMPhi);
     // Serial.print("\t");
-    Serial.println(markerPhi);
+    //Serial.println(markerPhi);
   }
 }
