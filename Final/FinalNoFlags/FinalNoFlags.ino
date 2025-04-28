@@ -9,6 +9,8 @@ float markerPhi = 0.0;
 float oldMPhi = markerPhi;
 float markerRho = 0.0;
 float oldMRho = markerRho;
+float trueMR = 0;
+float trueMP = 0;
 bool f_detected = false;  // Flag for object detection
 const int BUFFER_SIZE = 4; 
 byte buffer[BUFFER_SIZE];
@@ -111,6 +113,8 @@ void setup() {
   digitalWrite(M_DIR[1], LOW);
 
   // Gets inital counts from the encoder on left and right motors
+  // M1Enc.write(0);
+  // M2Enc.write(0);
   initEncCount[0] = M1Enc.read();
   initEncCount[1] = M2Enc.read();
 
@@ -148,9 +152,10 @@ void loop() {
         Serial.println("Marker Found");
         analogWrite(M_PWM[0], 0);
         analogWrite(M_PWM[1], 0);
-        delay(500);
+        // delay(2000);
         desiredPhi = phi - markerPhi * (PI / 180);
         mode = ROTATE;
+        //reset();
       }
       break;
 
@@ -161,7 +166,7 @@ void loop() {
       KiPhi = 3.75;
       desiredRhoVel = 0; // we want to be stationary around axle center axis
       desiredRho = rho;
-      //Serial.println("Turning");
+      Serial.println("Turning");
 
       // Check if we are within desired bounds
       if (fabs(phi - desiredPhi) <= PI/180) {
@@ -169,7 +174,7 @@ void loop() {
         analogWrite(M_PWM[1], 0);
         desiredPhi = phi - markerPhi * (PI / 180);
         desiredRho = rho + markerRho;
-        delay(1000);
+        delay(2000);
         if (atMarker == true) {
           atMarker = false;
           mode = STOP;
@@ -177,6 +182,7 @@ void loop() {
         else {
           mode = MOVE_FWD;
         }
+        arrow = 2;
       }
       break;
     
@@ -186,15 +192,13 @@ void loop() {
       KpPhi = 5;
       KdPhi = .5;
       if(abs(markerPhi != 90)){
-        if(abs(markerPhi > 1)){
-          desiredPhi = phi - markerPhi * (PI / 180);
-        }
+        desiredPhi = phi - markerPhi * (PI / 180);
       }
       desiredRho = rho + markerRho;
       // Serial.println("Move Fwd");
       // Serial.println(rho);
       // Serial.println(desiredRho);
-      if (rho >= desiredRho + (-1)) {
+      if (rho >= desiredRho + (-1.0)) {
         atMarker = true;
         mode = STOP;
       }
@@ -206,17 +210,19 @@ void loop() {
       //KdPhi = 45;
       if (atMarker && !f_stop) {
       // Serial.println("in turn if");
-        if (arrow == 0) { // left
-          Serial.println("Left turn");
-          delay(3000);
+        if (arrow == 0) { // right
+          Serial.println("Right turn");
+          delay(2000);
           desiredPhi = phi + (PI / 2);
           mode = ROTATE;
+          //reset();
         }
-        else if (arrow == 1) { // right
-          Serial.println("Right turn");
-          delay(3000);
+        else if (arrow == 1) { // left
+          Serial.println("Left turn");
+          delay(2000);
           desiredPhi = phi - (PI / 2);
           mode = ROTATE;
+          //reset();
         }
         else { // no turn comand from pi
           //Serial.println("Pause");
@@ -284,7 +290,11 @@ void loop() {
   // Serial.print("\t");
   // Serial.print(voltage[0]);
   // Serial.print("\t");
-  // Serial.println(voltage[1]);
+  // Serial.print(voltage[1]);
+  // Serial.print("\t");
+  // Serial.print(curEncCount[0]);
+  // Serial.print("\t");
+  // Serial.println(curEncCount[1]);
 
   // voltage calculations and setting
   Vbar = errorRhoVel*KpRhoVel;
@@ -297,9 +307,9 @@ void loop() {
   }
   oldVoltage[0] = voltage[0];
   oldVoltage[1] = voltage[1];
-  Serial.print(voltage[0]);
-  Serial.print("\t");
-  Serial.println(voltage[1]);
+  // Serial.print(voltage[0]);
+  // Serial.print("\t");
+  // Serial.println(voltage[1]);
 
   if(mode!=STOP){
     for (int i = 0; i < 2; i++) {
@@ -346,6 +356,7 @@ void receiveData (){
         buffer[i] = Wire.read();
     }
     memcpy(&markerPhi, buffer, sizeof(markerPhi));
+    trueMP = markerPhi;
 
     if (abs(markerPhi) <= 91.0f && markerRho <=10.0f) {
       f_detected = true;  // No marker detected
@@ -372,17 +383,18 @@ void receiveData (){
       f_stop = true;
     }
 
-    // Serial.print(oldMRho);
-    // Serial.print("\t");
-    // Serial.print(markerRho);
-    // Serial.print("\t");
-    // Serial.print(oldMPhi);
-    // Serial.print("\t");
-    // Serial.print(markerPhi);
-    // Serial.println("\t");
+    
     if(markerRho >= 0.01f || markerPhi >= 0.001f){
       oldMPhi = markerPhi;
       oldMRho = markerRho;
     }
+
+    // Serial.print(oldMRho);
+    // Serial.print("\t");
+    Serial.print(markerRho);
+    Serial.print("\t");
+    // Serial.print(oldMPhi);
+    // Serial.print("\t");
+    Serial.println(markerPhi);
   }
 }
