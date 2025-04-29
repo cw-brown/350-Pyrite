@@ -104,18 +104,18 @@ def get_distance(cnrs):
 def get_color(cnrs, frame):
     color = None
     # Get the coordinates of the marker corners
-    marker_corners = cnrs[0][0]
-    x_min, y_min = np.min(marker_corners, axis=0).astype(int)
-    x_max, y_max = np.max(marker_corners, axis=0).astype(int)
+    markerCorners = cnrs[0][0]
+    xMin, yMin = np.min(markerCorners, axis=0).astype(int)
+    xMax, yMax = np.max(markerCorners, axis=0).astype(int)
 
     # Crop the image
     offset = 70  # Pixels to shift the region to the right or left
-    roi_x_min_left = max(0, x_min - offset)
-    roi_x_max_left = x_min
-    roi_x_min_right = x_max
-    roi_x_max_right = min(frame.shape[1], x_max + offset)
-    roi_y_min = y_min
-    roi_y_max = y_max
+    roi_x_min_left = max(0, xMin - offset)
+    roi_x_max_left = xMin
+    roi_x_min_right = xMin
+    roi_x_max_right = min(frame.shape[1], xMax + offset)
+    roi_y_min = yMin
+    roi_y_max = yMax
 
     # Extract the region of interest (ROI) for the right side of the marker (red arrow)
     roi_right = frame[roi_y_min:roi_y_max, roi_x_min_right:roi_x_max_right]
@@ -188,12 +188,12 @@ while True:
         distances = [float(round(tvec[0][2] * 3.28, 1)) for tvec in tvecs]
         
         # Find the index of the closest marker
-        closest_idx = np.argmin(distances)
+        closestIdx = np.argmin(distances)
         
         # Continue with only the closest marker
-        closest_corner = [corners[closest_idx]] 
-        closest_ids = np.array([[ids[closest_idx][0]]])
-        currDistance = distances[closest_idx]
+        closestCorner = [corners[closestIdx]] 
+        closestIDs = np.array([[ids[closestIdx][0]]])
+        currDistance = distances[closestIdx]
 
         # Check if we shouldn't detect the marker
         if currDistance > DETECTION_THRESH:
@@ -205,9 +205,9 @@ while True:
         
         # Check the distance: detect color within COLOR_THRESH, otherwise detect angle
         if currDistance <= COLOR_THRESH:  
-            currAngle = get_color(closest_corner, frame)
+            currAngle = get_color(closestCorner, frame)
         else:
-            currAngle = get_angle(closest_corner)
+            currAngle = get_angle(closestCorner)
        
     else:
         currAngle = 99.9
