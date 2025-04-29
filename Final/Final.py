@@ -14,9 +14,8 @@ This Python code enables a robot to autonomously detect a visual beacon using an
 ID, navigate to within 1.5 feet of it, and perform a directional turn based on the color of the
 arrow indicator. Only the closest marker is processed for distance, angle, and color detection.
 
-The code supports two types of trials but edits to the DO_TURN variable in the Arduino Code are necessary: 
-(1) approach and stop within 1.5 feet of the marker, 
-and (2) approach and turn 90° in the correct direction. 
+The robot will complete a course of aruco markers, and stop at the marker will no color arrow to the
+right or left.
 
 Performance is evaluated based on accuracy, timing, and reliability across runs.
 
@@ -24,13 +23,25 @@ The I2C communication protocol is used to send a string to the arduino to displa
 desired location of the left wheel and right wheel, and to send a byte to the
 arduino to commincate the desired location.
 
+Prior to running this code, ensure that a camera matrix, and distorion parameters are
+added to the same director as pickle files. The user will also need to ensure that the 
+following constants make sense in regards to the trial:
+    COLOR_THRESH: Threshold to begin detecting color, ideally this should be close to the marker
+    and our group found between 1 foot and 1.5 feet to work best
+
+    DETECTION_THRESH: Threshold to begin detecting a marker. This parameter is only relevant to the
+    first marker, since only the first marker will be within ( < or = ) the DETECTION_THRESHOLD as 
+    stated by the demo instructions.
+
+    ARD_ADDR: I2C address of the arduino. The user can verify this by checking i2cdetect 1 on the pi terminal
+    to verify the address of any connection.
+
 To run this code, ensure that the aruco marker used for testing is defined in the
-imported aruco dictionary, and verify the following connections from the lcd pi shield
+imported aruco dictionary (We used 6x6 markers), and verify the following connections from the pi shield
 and the arduino:
 
-    *NOTE: The LCD pi shield needs to properly attached where the left side of the shield
-           is lined up with the SD card side of the PI. View the EENG 350 Assingment 1
-           computer vision and communication tutorial for more details.
+    *NOTE: There is a better visual reprsentation of this in a class assignment, as the pi pins are unnamed on 
+    the silk screen.
 
     Connections:
     pi        -        arduino
@@ -40,18 +51,18 @@ and the arduino:
     SDA       -        A4
 '''
 
-COLOR_THRESH = 1
-DETECTION_THRESH = 5
-# define the I2C Address of Arduino
-ARD_ADDR = 8  
+# Constant Definitions
+COLOR_THRESH = 1 # Set the distance in feet to begin detecting the color of the directional arrow
+DETECTION_THRESH = 5 # Set the detection distance in feet of the first marker
+ARD_ADDR = 8  # Set the I2C address of the aruindo. (Verify with i2cdetect 1 on pi terminal)
 
-# I2C declarations for ard and lcd
-i2cLCD = board.I2C()  # uses board.SCL and board.SDA
+# I2C declarations for ard
 i2cARD = smbus2.SMBus(1)  # Use I2C bus 1 for communication with Arduino
+
 # init the camera
 cap = cv.VideoCapture(0)
 
-# Camera Calibration and Distortion Matricies
+# Load Camera Calibration and Distortion Matricies
 with open("cameraMatrix.pkl", "rb") as f:
     cameraMatrix = pickle.load(f)
 with open("dist.pkl", "rb") as f:
@@ -68,10 +79,6 @@ currDistance = None
 lastDistance = None
 currColor = None
 lastColor = None
-lcdPrompt = []
-
-# Implement time based sending to minimize any lag
-last_update_time = time()
 
 # find the angle off the center axis of rotation. return an angle to 1 decimal point of accuracy      
 def get_angle(cnrs):
@@ -169,10 +176,12 @@ while True:
     # Detect Aruco markers
     corners, ids, rejected = cv.aruco.detectMarkers(gray, dictionary, parameters=parameters)
 
+    # Set the default marker not found message
     currDistance = 99.9
     currAngle = 99.9
-    if ids is not None: # if we find markers
-        # Estimate pose for all detected markers
+    if ids is not None: # if markers are seen by the camera
+
+        # Estimate the distances of the markers
         rvecs, tvecs, _ = cv.aruco.estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, dist)
         
         # Calculate the distance for each marker (in feet)
@@ -181,11 +190,12 @@ while True:
         # Find the index of the closest marker
         closest_idx = np.argmin(distances)
         
-        # Use only the closest marker
-        closest_corner = [corners[closest_idx]]  # Wrap in list to match expected format
-        closest_ids = np.array([[ids[closest_idx][0]]])  # Wrap in array to match expected format
+        # Continue with only the closest marker
+        closest_corner = [corners[closest_idx]] 
+        closest_ids = np.array([[ids[closest_idx][0]]])
         currDistance = distances[closest_idx]
 
+        # Check if we shouldn't detect the marker
         if currDistance > DETECTION_THRESH:
             currDistance = 99.9
             try:
@@ -193,21 +203,18 @@ while True:
             except:
                 continue
         
-        # Check the distance: detect color within COLOR_THRESH, angle outside 1 foot
+        # Check the distance: detect color within COLOR_THRESH, otherwise detect angle
         if currDistance <= COLOR_THRESH:  
             currAngle = get_color(closest_corner, frame)
         else:
             currAngle = get_angle(closest_corner)
-    
-        message = [currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
-   
+       
     else:
         currAngle = 99.9
         currDistance = 99.9
-        message = [currDistance, currAngle] # compile the current Distance and angle into a message to send to the arduino
 
     # Try to send data, if I2C error, continue to next iteration
-    data = struct.pack('ff', message[0], message[1])
+    data = struct.pack('ff', currAngle, currDistance)
     try:
         i2cARD.write_i2c_block_data(ARD_ADDR, 1, list(data))   
     except:
