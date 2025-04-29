@@ -21,5 +21,21 @@ The motor control subsystem, implemented on Arduino, manages the two wheels to a
 
 The display and communication subsystem ties the project together by providing user feedback and ensuring seamless interaction between the Pi and Arduino. An LCD connected to the Pi displays the goal positions (e.g., "Goal Position: 01") based on the marker’s quadrant, updating without noticeable lag using threading to offload LCD updates to a separate thread. The subsystem also facilitates communication, with the Pi sending goal positions to the Arduino, which processes them to control the motors. Supplementary debugging scripts, Simulink models, and MATLAB analyses verify subsystem performance, such as step responses, ensuring the integrated system meets the project’s requirements for accuracy and robustness.
 # Demo 1
+The overall goals achieved by this project:
+* Use OpenCV to detect aruco markers and return their angle from the Z axis of the camera.
+* Use camera calibration to ensure accurate angle detection.
+* Communicate the angle on an LCD screen connected to the rasberry pi while using threading to minimize any delay with the programs.
+* Implement a PID controller to ensure the robot can move in a straight line and desired distance.
+* Implement a PID controller to ensure the robot can accuratly turn a desired distance.
+* Optimize program speed and accuracy
+* Ensure accurate individual subsystem development
+  
+The Demo 1 project focuses on developing and demonstrating foundational capabilities for a robot that integrates computer vision and precise movement. This demo requires the robot to perform three critical tasks: detecting an ArUco marker and reporting its angle relative to the camera axis, moving forward a specified distance in a straight line, and rotating by a specified angle before moving forward a set distance. The project emphasizes teamwork, modular design, and documentation. 
+
+The computer vision subsystem is tasked with detecting a 5 cm by 5 cm ArUco marker (marker 0 from the 6x6 dictionary) and calculating the signed angle between the camera’s z-axis and the marker’s position, with positive angles indicating the marker is to the left. During testing, the robot remains stationary while the marker is placed at five different locations, 1 to 5 feet away. The subsystem must detect the marker within 10 seconds, display the detected angle on an LCD screen, while also minimizing delay. Implemented in Python using OpenCV on a Raspberry Pi, this subsystem requires robust image processing to handle varying marker positions and ensure accurate angle reporting.
+
+The straight-line movement test requires the robot to move forward a specified distance, ranging from 1 to 10 feet, with high precision. During three test runs, the robot must start within 10 seconds of code download, complete the movement within 60 seconds, and stop accurately at the desired distance. The subsystem, likely controlled by an Arduino managing motor outputs, measures the error between the desired and actual positions, aiming for an average error of 0.75 inches or less. This requires a well-tuned velocity control system and accurate distance tracking, possibly using wheel encoders or other sensors, to ensure the robot travels in a straight line without deviation.
+
+The rotation and movement tests combine angular and linear motion, requiring the robot to rotate by a specified angle (possibly zero) and then move forward a specified distance in feet. Tested over three runs with the same timing constraints as the straight-line task, this subsystem must achieve precise rotation and translation, with an average position error of 0.75 inches or less. Controlled via Arduino, it builds on the straight-line movement system by adding a rotation mechanism, using differential wheel speeds or a dedicated steering system. The subsystem’s performance is supported by Simulink models for simulation and debugging, ensuring accurate execution of combined maneuvers.
 # Demo 2
 # Final
