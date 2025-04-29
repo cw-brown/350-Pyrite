@@ -1,0 +1,1 @@
+All old files not pertinent to showing each demo are shown here. Each folder contains different implementations tried and code that was used along the way for each respective demo. Libraries folder was used for coding directly within the GitHub folder while using the Arduino IDE.
