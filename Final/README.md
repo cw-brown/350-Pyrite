@@ -3,7 +3,7 @@
 ## Overview
 This project enables a two-wheeled robot to autonomously detect an Aruco marker beacon, approach it within 1.5 feet, and execute a directional turn based on a detected arrow color, ultimately completing a set course/maze. The robot uses a Raspberry Pi for computer vision and an Arduino for motor and encoder management.
 
-Performance was evaluated based on the robot’s **accuracy**, **speed**, and **reliability** across multiple runs.
+Performance was evaluated based on the robot’s **accuracy**, **speed**, and **reliability**.
 
 ---
 
