@@ -4,7 +4,7 @@ Drew Barner and Bruce Bearden (Computer Vision)
 
 Throughout this semester, our task is to design a PID controlled robot. To do this, we are utilizing a Raspberry Pi for camera detection of markers, and an Arduino for motor control and localization. The Arduino will interpret data from the camera, and drive to and from Aruco markers to complete a set course.
 
-This goal was realized by completing the following checkpoints:
+This goal was realized by completing the following checkpoints. For a more in-depth explanation, please view the README files listed in the individual folders.
 
 # Mini Project
 # Demo 1
