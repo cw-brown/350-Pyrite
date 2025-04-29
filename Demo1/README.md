@@ -9,6 +9,21 @@ Camera: Used for capturing frames and detecting markers.
 LCD Display (Optional): Displays real-time marker angles.  
 I2C Communication: Used for LCD updates.  
 
+To run this code, ensure that the aruco marker used for testing is defined in the
+imported aruco dictionary, and verify the following connections from the lcd pi shield
+and the arduino:
+
+    *NOTE: The LCD pi shield needs to properly attached where the left side of the shield
+           is lined up with the SD card side of the PI. View the EENG 350 Assingment 1
+           computer vision and communication tutorial for more details.
+
+    Connections:
+    pi        -        arduino
+    --------------------------
+    GND       -        GND
+    SCL       -        A5
+    SDA       -        A4
+
 ### Software Setup
 Dependencies:  
 - OpenCV (cv2)  
