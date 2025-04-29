@@ -6,8 +6,6 @@ Throughout this semester, our task is to design a PID controlled robot. To do th
 
 This goal was realized by completing the following checkpoints. For a more in-depth explanation, please view the README files listed in the individual folders.
 
-This goal was realized by completing the following checkpoints. For a more in-depth explanation, please view the README files listed in the individual folders.
-
 # Mini Project
 The overall goals achieved by this project:
 * Use OpenCV to detect aruco markers and return their position as seen by the camera.
