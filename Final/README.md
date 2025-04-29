@@ -1,7 +1,7 @@
 # Final Project - Autonomous Robot Navigation
 
 ## Overview
-This project enables a two-wheeled robot to autonomously detect an Aruco marker beacon, approach it within 1.5 feet, and optionally execute a directional turn based on a detected arrow color. The robot uses a Raspberry Pi for computer vision and high-level control, and an Arduino for low-level motor and encoder management.
+This project enables a two-wheeled robot to autonomously detect an Aruco marker beacon, approach it within 1.5 feet, and execute a directional turn based on a detected arrow color. The robot uses a Raspberry Pi for computer vision and an Arduino for motor and encoder management.
 
 Performance was evaluated based on the robot’s **accuracy**, **speed**, and **reliability** across multiple runs.
 
@@ -11,13 +11,8 @@ Performance was evaluated based on the robot’s **accuracy**, **speed**, and **
 
 ### Raspberry Pi (Python)
 - Detects the nearest Aruco marker and measures its distance and angle relative to the robot.
-- Identifies the direction of an arrow indicator based on color (red for left, blue for right).
+- Identifies the direction of an arrow indicator based on color (green for left, red for right).
 - Sends target navigation commands to the Arduino via I2C communication.
-- Supports two operational modes:
-  1. **Approach Only** — Drive to within 1.5 feet of the beacon and stop.
-  2. **Approach and Turn** — Drive to the beacon, then execute a 90° turn based on arrow direction.
-
-> **Note:** Operational mode is controlled by editing the `DO_TURN` variable in the Arduino code.
 
 ### Arduino (C++)
 - Receives navigation commands (distance and angle) from the Raspberry Pi.
@@ -30,29 +25,32 @@ Performance was evaluated based on the robot’s **accuracy**, **speed**, and **
 ## Communication
 - **Protocol:** I2C
 - **Data Sent:**
-  - Floating-point distance and angle information (as bytes)
-  - Command flag indicating if a turn should occur after reaching the marker
+  - Floating-point distance (rho) and angle (phi) information (as bytes)
+  - phi = +/- 90 for left or right turn when at marker
+  - phi = -50 for hard stop
+  - rho = 99.9, phi = 99.9 for no marker detected
 
 ---
 
 ## Running the System
-1. Ensure the Raspberry Pi’s LCD shield is correctly aligned (left side matching the Pi’s SD card side).
-2. Verify that the Aruco marker used is included in the selected dictionary in the Python script.
-3. Upload the Arduino code to the microcontroller.
-4. Run the Python script on the Raspberry Pi.
-5. Place the beacon marker and start the robot from an initial position facing roughly toward the marker.
+1. Verify that the Aruco marker used is included in the selected dictionary in the Python script.
+2. Upload the Arduino code to the microcontroller.
+3. Run the Python script on the Raspberry Pi.
+4. Place the course markers and power on the robot from an initial position/rotation where no visible markers other than the first marker will be closer than 5 ft while seeking.
 
 ---
 
 ## Notes
 - Only the nearest visible marker is used for navigation decisions.
-- System requires manual setup of operational mode (`DO_TURN`) before deployment.
 - For detailed hardware wiring, refer to internal project documentation or hardware schematics.
 
 ---
 
 ## Authors
-- [Your Name]
+- Parker Anderson
+- Bruce Bearden
+- Drew Barner
+- Caleb Brown
 
 ## Date
-- April 2025
+- 4/28/25
